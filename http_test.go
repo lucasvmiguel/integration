@@ -72,7 +72,7 @@ func TestHandlerCallHTTPGet_Success(t *testing.T) {
 func TestHandlerCallHTTPGet_SuccessWithSQL(t *testing.T) {
 	db, _ := connectToDatabase()
 	err := Test(TestCase{
-		Description: "TestHandlerCallHTTPGet_Success",
+		Description: "TestHandlerCallHTTPGet_SuccessWithSQL",
 		Request: call.Request{
 			URL:    "http://localhost:8080/handlerCallHTTPGet",
 			Method: goHTTP.MethodGet,

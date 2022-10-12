@@ -17,7 +17,45 @@ go get -u github.com/lucasvmiguel/integration
 The simplest use case is calling an endpoint via http and checking the return of the call. To test that, use the follwing code:
 
 ```go
-TODO
+package test
+
+import (
+	"net/http"
+	"testing"
+
+	"github.com/lucasvmiguel/integration"
+	"github.com/lucasvmiguel/integration/call"
+	"github.com/lucasvmiguel/integration/expect"
+)
+
+type Result []map[string]interface{}
+
+func init() {
+	http.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("pong"))
+	})
+
+	go http.ListenAndServe(":8080", nil)
+}
+
+func TestPingEndpoint(t *testing.T) {
+	testCase := integration.TestCase{
+		Description: "Testing ping endpoint",
+		Request: call.Request{
+			URL:    "http://localhost:8080/ping",
+			Method: http.MethodGet,
+		},
+		Response: expect.Response{
+			StatusCode: http.StatusOK,
+			Body:       "pong",
+		},
+	}
+
+	err := integration.Test(testCase)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
 ```
 
 Note: The http server must be started together with the tests
@@ -31,7 +69,7 @@ See how to use different aspects of the library below.
 An HTTP request will be sent to the your server depending on how it's configure the `Request` property on the `TestCase`. `Request` has many different fields to be configured, see them below:
 
 ```go
-// Request represents an HTTP request
+// Request sets up how a HTTP request will be called
 type Request struct {
 	// URL that will be called on the request
 	// eg: https://jsonplaceholder.typicode.com/todos
@@ -54,17 +92,17 @@ type Request struct {
 An HTTP response will be expected from your server depending on how it's configure the `Response` property on the `TestCase`. If your endpoints sends a different response, the `Test` function will return an `error`. `Response` has many different fields to be configured, see them below:
 
 ```go
-// ResponseExpected represents an HTTP response
-type ResponseExpected struct {
-	// StatusCode is the HTTP status code of the response
+// Response is used to validate if a HTTP response was returned with the correct parameters
+type Response struct {
+	// StatusCode expected in the HTTP response
 	StatusCode int
-	// Body is the HTTP response body
+	// Body expected in the HTTP response
 	Body string
 	// IgnoreBodyFields is used to ignore the assertion of some of the body field
 	// The syntax used to ignore fields can be found here: https://github.com/tidwall/sjson
 	// eg: ["data.transaction_id", "id"]
 	IgnoreBodyFields []string
-	// Header is the HTTP response headers.
+	// Header expected in the HTTP response.
 	// Every header set in here will be asserted, others will be ignored.
 	// eg: content-type=application/json
 	Header http.Header
@@ -80,28 +118,69 @@ There are few different assertion. See them below:
 SQL assertion checks if an SQL query returns an expected result. See below how to use it.
 
 ```go
-TODO
+func TestHandlerCallHTTPGet_SuccessWithSQL(t *testing.T) {
+	db, _ := connectToDatabase()
+	err := Test(TestCase{
+		Description: "TestHandlerCallHTTPGet_Success",
+		Request: call.Request{
+			URL:    "http://localhost:8080/handlerCallHTTPGet",
+			Method: goHTTP.MethodGet,
+		},
+		Response: expect.Response{
+			StatusCode: goHTTP.StatusOK,
+			Body:       "hello",
+		},
+		Assertions: []assertion.Assertion{
+			&assertion.SQL{
+				DB: db,
+				Query: call.Query{
+					Statement: `
+					SELECT id, title, description, category_id FROM products
+					`,
+				},
+				Result: expect.Result{
+					{"id": 1, "title": "foo1", "description": "bar1", "category_id": 1},
+					{"id": 2, "title": "foo2", "description": "bar2", "category_id": 1},
+				},
+			},
+		},
+	})
+
+	if err != nil {
+		t.Fatal(err)
+	}
+}
 ```
 
 See all available fields when configuring an `SQLAssertion`:
 
 ```go
-// SQLAssertion asserts a SQL query
-type SQLAssertion struct {
+// SQL asserts a SQL query
+type SQL struct {
 	// DB database used to query the data to assert
 	DB *sql.DB
 	// Query that will run in the database
-	Query string
+	Query call.Query
 	// ResultExpected expects result in json that will be returned when the query run.
-	// A multiline string is valid
-	// eg:
-	// [{
-	// 		"description":"Bar",
-	// 		"id":"2",
-	// 		"title":"Fooa"
-	// 	}]
-	ResultExpected string
+	Result expect.Result
 }
+```
+
+```go
+// Query sets up how a SQL query will be called
+type Query struct {
+	// Statement that will be queried.
+	// eg: SELECT * FROM products
+	Statement string
+
+	// Params that can be passed to the SQL query
+	Params []any
+}
+```
+
+```go
+// Result is used to validate if a SQL query was returned with the correct items and fields
+type Result []map[string]any
 ```
 
 #### HTTP
@@ -109,33 +188,64 @@ type SQLAssertion struct {
 HTTP assertion checks if an HTTP request was sent while your endpoint was being called. See below how to use it.
 
 ```go
-TODO
+func TestHandlerCallHTTPGet_Success(t *testing.T) {
+
+	err := Test(TestCase{
+		Description: "TestHandlerCallHTTPGet_Success",
+		Request: call.Request{
+			URL:    "http://localhost:8080/handlerCallHTTPGet",
+			Method: goHTTP.MethodGet,
+		},
+		Response: expect.Response{
+			StatusCode: goHTTP.StatusOK,
+			Body:       "hello",
+		},
+		Assertions: []assertion.Assertion{
+			&assertion.HTTP{
+				Request: expect.Request{
+					URL:    "https://jsonplaceholder.typicode.com/posts/1",
+					Method: goHTTP.MethodGet,
+				},
+				Response: mock.Response{
+					StatusCode: http.StatusOK,
+					Body: `{
+						"message": "success
+					}`,
+				},
+			},
+		},
+	})
+
+	if err != nil {
+		t.Fatal(err)
+	}
+}
 ```
 
 See all available fields when configuring an `HTTPAssertion`:
 
 ```go
-// HTTPAssertion asserts a http request
-type HTTPAssertion struct {
-	// RequestExpected will assert if request was made with correct parameters
-	RequestExpected RequestExpected
-	// ResponseMock mocks a fake response to avoid your test making real http request over the internet
-	ResponseMock ResponseMock
+// HTTP asserts a http request
+type HTTP struct {
+	// Request will assert if request was made with correct parameters
+	Request expect.Request
+	// Response mocks a fake response to avoid your test making real http request over the internet
+	Response mock.Response
 }
 ```
 
 ```go
-// RequestExpected struct is used to validate if a request was made with the correct parameters
-type RequestExpected struct {
-	// URL request url that must be called
+// Request struct is used to validate if a HTTP request was made with the correct parameters
+type Request struct {
+	// URL expected in the HTTP request
 	URL string
-	// Method request method that must be called with
+	// Method expected in the HTTP request
 	Method string
-	// Header request header that will be asserted with
+	// Header expected in the HTTP request
 	// Every header set in here will be asserted, others will be ignored.
 	Header http.Header
-	// Body request body that must be called with
-	// a multiline string is valid
+	// Body expected in the HTTP request.
+	// A multiline string is valid.
 	// eg: { "foo": "bar" }
 	Body string
 	// IgnoreBodyFields is used to ignore the assertion of some of the body field
@@ -146,12 +256,12 @@ type RequestExpected struct {
 ```
 
 ```go
-// ResponseMock struct is used to return a fake http response to your application
-type ResponseMock struct {
-	// StatusCode is the HTTP status code of the response
+// Response is used to return a mocked response
+type Response struct {
+	// StatusCode that will be returned in the mocked HTTP response
 	StatusCode int
-	// Body is the HTTP response body
-	// a multiline string is valid
+	// Body that will be returned in the mocked HTTP response.
+	// A multiline string is valid.
 	// eg: { "foo": "bar" }
 	Body string
 }
