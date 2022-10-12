@@ -24,7 +24,7 @@ type TestCase struct {
 	Request Request
 
 	// ResponseExpected is going to be used to assert if the HTTP endpoint returned what was expected.
-	ResponseExpected Response
+	ResponseExpected ResponseExpected
 
 	// Assertions that will run in test case
 	Assertions []assertion.Assertion
@@ -47,8 +47,8 @@ type Request struct {
 	Header http.Header
 }
 
-// Response represents an HTTP response
-type Response struct {
+// ResponseExpected represents an HTTP response
+type ResponseExpected struct {
 	// StatusCode is the HTTP status code of the response
 	StatusCode int
 	// Body is the HTTP response body
@@ -101,7 +101,7 @@ func Test(testCase TestCase) error {
 	return nil
 }
 
-func assertResponse(expected Response, resp *http.Response) error {
+func assertResponse(expected ResponseExpected, resp *http.Response) error {
 	defer resp.Body.Close()
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {

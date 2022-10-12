@@ -47,7 +47,7 @@ func TestHandlerCallHTTPGet_Success(t *testing.T) {
 			URL:    "http://localhost:8080/handlerCallHTTPGet",
 			Method: goHTTP.MethodGet,
 		},
-		ResponseExpected: Response{
+		ResponseExpected: ResponseExpected{
 			StatusCode: goHTTP.StatusOK,
 			Body:       "hello",
 		},
@@ -74,7 +74,7 @@ func TestHandlerCallHTTPGet_SuccessWithSQLAssertion(t *testing.T) {
 			URL:    "http://localhost:8080/handlerCallHTTPGet",
 			Method: goHTTP.MethodGet,
 		},
-		ResponseExpected: Response{
+		ResponseExpected: ResponseExpected{
 			StatusCode: goHTTP.StatusOK,
 			Body:       "hello",
 		},
@@ -112,7 +112,7 @@ func TestHandlerCallHTTPGet_FailedMethod(t *testing.T) {
 			URL:    "http://localhost:8080/handlerCallHTTPGet",
 			Method: goHTTP.MethodPatch,
 		},
-		ResponseExpected: Response{
+		ResponseExpected: ResponseExpected{
 			StatusCode: goHTTP.StatusOK,
 			Body:       "hello",
 		},
@@ -138,7 +138,7 @@ func TestHandlerCallHTTPGet_FailedURL(t *testing.T) {
 			URL:    "http://localhost:8080/invalid",
 			Method: goHTTP.MethodGet,
 		},
-		ResponseExpected: Response{
+		ResponseExpected: ResponseExpected{
 			StatusCode: goHTTP.StatusOK,
 			Body:       "hello",
 		},
@@ -164,7 +164,7 @@ func TestHandlerCallHTTPGet_WrongStatus(t *testing.T) {
 			URL:    "http://localhost:8080/handlerCallHTTPGet",
 			Method: goHTTP.MethodGet,
 		},
-		ResponseExpected: Response{
+		ResponseExpected: ResponseExpected{
 			StatusCode: goHTTP.StatusCreated,
 			Body:       "hello",
 		},
@@ -190,7 +190,7 @@ func TestHandlerCallHTTPGet_WrongResponseBody(t *testing.T) {
 			URL:    "http://localhost:8080/handlerCallHTTPGet",
 			Method: goHTTP.MethodGet,
 		},
-		ResponseExpected: Response{
+		ResponseExpected: ResponseExpected{
 			StatusCode: goHTTP.StatusOK,
 			Body:       "invalid",
 		},
@@ -216,7 +216,7 @@ func TestHandlerCallHTTPGet_InvalidHTTPAssertion(t *testing.T) {
 			URL:    "http://localhost:8080/handlerCallHTTPGet",
 			Method: goHTTP.MethodGet,
 		},
-		ResponseExpected: Response{
+		ResponseExpected: ResponseExpected{
 			StatusCode: goHTTP.StatusOK,
 			Body:       "hello",
 		},
@@ -243,7 +243,7 @@ func TestHandlerCallHTTPGet_InvalidSQLAssertion(t *testing.T) {
 			URL:    "http://localhost:8080/handlerCallHTTPGet",
 			Method: goHTTP.MethodGet,
 		},
-		ResponseExpected: Response{
+		ResponseExpected: ResponseExpected{
 			StatusCode: goHTTP.StatusOK,
 			Body:       "hello",
 		},
