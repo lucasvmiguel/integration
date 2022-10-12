@@ -17,35 +17,7 @@ go get -u github.com/lucasvmiguel/integration
 The simplest use case is calling an endpoint via http and checking the return of the call. To test that, use the follwing code:
 
 ```go
-package tests
-
-// a http server must be initiate to execute requests
-func init() {
-	http.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("pong"))
-	})
-
-	go http.ListenAndServe(":8080", nil)
-}
-
-// sample test case
-func TestPingEndpoint(t *testing.T) {
-	err := Test(TestCase{
-		Description: "Testing ping endpoint",
-		Request: Request{
-			URL:    "http://localhost:8080/ping",
-			Method: http.MethodGet,
-		},
-		ResponseExpected: ResponseExpected{
-			StatusCode: http.StatusOK,
-			Body:       "pong",
-		},
-	})
-
-	if err != nil {
-		t.Fatal(err)
-	}
-}
+TODO
 ```
 
 Note: The http server must be started together with the tests
@@ -108,39 +80,7 @@ There are few different assertion. See them below:
 SQL assertion checks if an SQL query returns an expected result. See below how to use it.
 
 ```go
-func TestHandlerAndAssertSomeRecordsAreInDatabase(t *testing.T) {
-  db := connectToDatabase()
-
-	err := Test(TestCase{
-		Description: "testing an endpoint and check if records are in the database",
-		Request: Request{
-			URL:    "http://localhost:8080/ping",
-			Method: http.MethodGet,
-		},
-		ResponseExpected: ResponseExpected{
-			StatusCode: http.StatusOK,
-			Body:       "pong",
-		},
-		Assertions: []assertion.Assertion{
-			&SQLAssertion{
-        DB: db,
-        Query: `
-          SELECT id, title, description, category_id FROM products
-        `,
-        ResultExpected: `
-          [
-            {"category_id":"1","description":"bar1","id":"1","title":"foo1"},
-            {"category_id":"1","description":"bar2","id":"2","title":"foo2"}
-          ]
-        `,
-	    },
-		},
-	})
-
-	if err == nil {
-		t.Fatal(err)
-	}
-}
+TODO
 ```
 
 See all available fields when configuring an `SQLAssertion`:
@@ -169,35 +109,7 @@ type SQLAssertion struct {
 HTTP assertion checks if an HTTP request was sent while your endpoint was being called. See below how to use it.
 
 ```go
-func TestHandlerWithAnHTTPCAll(t *testing.T) {
-	err := Test(TestCase{
-		Description: "testing an endpoint that calls another endpoint",
-		Request: Request{
-			URL:    "http://localhost:8080/ping",
-			Method: http.MethodGet,
-		},
-		ResponseExpected: ResponseExpected{
-			StatusCode: http.StatusOK,
-			Body:       "pong",
-		},
-		Assertions: []assertion.Assertion{
-			&assertion.HTTPAssertion{
-				RequestExpected: RequestExpected{
-          URL:    "http://localhost:8080/another_ping",
-          Method: http.MethodGet,
-        },
-        ResponseMock: ResponseMock{
-          StatusCode: http.StatusOK,
-          Body:       "pong from another endpoint",
-        },
-			},
-		},
-	})
-
-	if err == nil {
-		t.Fatal(err)
-	}
-}
+TODO
 ```
 
 See all available fields when configuring an `HTTPAssertion`:
