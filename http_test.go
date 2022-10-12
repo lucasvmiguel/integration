@@ -1,4 +1,4 @@
-package http
+package integration
 
 import (
 	"database/sql"
