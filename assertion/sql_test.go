@@ -6,6 +6,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/lucasvmiguel/integration/call"
+	"github.com/lucasvmiguel/integration/expect"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -20,7 +22,7 @@ func init() {
 }
 
 func TestSQLSetup_Success(t *testing.T) {
-	assertion := SQLAssertion{}
+	assertion := SQL{}
 
 	err := assertion.Setup()
 	if err != nil {
@@ -30,17 +32,15 @@ func TestSQLSetup_Success(t *testing.T) {
 
 func TestSQLAssert_Success(t *testing.T) {
 	db, _ := connectToDatabase()
-	assertion := SQLAssertion{
+	assertion := SQL{
 		DB: db,
-		Query: `
-		SELECT id, title, description, category_id FROM products
-		`,
-		ResultExpected: `
-		[
-			{"category_id":"1","description":"bar1","id":"1","title":"foo1"},
-			{"category_id":"1","description":"bar2","id":"2","title":"foo2"}
-		]
-		`,
+		Query: call.Query{
+			Statement: "SELECT id, title, description, category_id FROM products",
+		},
+		Result: expect.Result{
+			{"id": 1, "title": "foo1", "description": "bar1", "category_id": 1},
+			{"id": 2, "title": "foo2", "description": "bar2", "category_id": 1},
+		},
 	}
 
 	err := assertion.Assert()
@@ -51,18 +51,18 @@ func TestSQLAssert_Success(t *testing.T) {
 
 func TestSQLAssert_SuccessWithJoin(t *testing.T) {
 	db, _ := connectToDatabase()
-	assertion := SQLAssertion{
+	assertion := SQL{
 		DB: db,
-		Query: `
-		SELECT products.id, products.title, products.category_id, categories.id, categories.name FROM products
-		JOIN categories ON products.category_id = categories.id
-		`,
-		ResultExpected: `
-		[
-			{"category_id":"1","id":"1","name":"whatever","title":"foo1"},
-			{"category_id":"1","id":"1","name":"whatever","title":"foo2"}
-		]
-		`,
+		Query: call.Query{
+			Statement: `
+				SELECT products.id, products.title, products.category_id, categories.id as cat_id, categories.name FROM products
+				JOIN categories ON products.category_id = categories.id
+			`,
+		},
+		Result: expect.Result{
+			{"id": 1, "title": "foo1", "category_id": 1, "name": "whatever", "cat_id": 1},
+			{"id": 2, "title": "foo2", "category_id": 1, "name": "whatever", "cat_id": 1},
+		},
 	}
 
 	err := assertion.Assert()
@@ -73,17 +73,15 @@ func TestSQLAssert_SuccessWithJoin(t *testing.T) {
 
 func TestSQLAssert_FailedToQuery(t *testing.T) {
 	db, _ := connectToDatabase()
-	assertion := SQLAssertion{
+	assertion := SQL{
 		DB: db,
-		Query: `
-		SELECT * FROM unknown
-		`,
-		ResultExpected: `
-		[
-			{"description":"bar1","id":"1","title":"foo1"},
-			{"description":"bar2","id":"2","title":"foo2"}
-		]
-		`,
+		Query: call.Query{
+			Statement: "SELECT * FROM unknown",
+		},
+		Result: expect.Result{
+			{"id": 1, "title": "foo1", "description": "bar1", "category_id": 1},
+			{"id": 2, "title": "foo2", "description": "bar2", "category_id": 1},
+		},
 	}
 
 	err := assertion.Assert()
@@ -94,12 +92,12 @@ func TestSQLAssert_FailedToQuery(t *testing.T) {
 
 func TestSQLAssert_FailedResult(t *testing.T) {
 	db, _ := connectToDatabase()
-	assertion := SQLAssertion{
+	assertion := SQL{
 		DB: db,
-		Query: `
-		SELECT * FROM products
-		`,
-		ResultExpected: `[]`,
+		Query: call.Query{
+			Statement: "SELECT * FROM products",
+		},
+		Result: expect.Result{},
 	}
 
 	err := assertion.Assert()

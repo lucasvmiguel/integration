@@ -4,44 +4,71 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/lucasvmiguel/integration/internal/utils"
-
+	"github.com/lucasvmiguel/integration/call"
+	"github.com/lucasvmiguel/integration/expect"
 	"github.com/pkg/errors"
 )
 
-// SQLAssertion asserts a SQL query
-type SQLAssertion struct {
+// SQL asserts a SQL query
+type SQL struct {
 	// DB database used to query the data to assert
 	DB *sql.DB
 	// Query that will run in the database
-	Query string
+	Query call.Query
 	// ResultExpected expects result in json that will be returned when the query run.
-	// A multiline string is valid
-	// eg:
-	// [{
-	// 		"description":"Bar",
-	// 		"id":"2",
-	// 		"title":"Fooa"
-	// 	}]
-	ResultExpected string
+	Result expect.Result
 }
 
 // Setup does not do anything because it doesn't need
-func (a *SQLAssertion) Setup() error {
+func (a *SQL) Setup() error {
 	return nil
 }
 
 // Assert checks if query returns the expected result
-func (a *SQLAssertion) Assert() error {
-	sqlResult, err := utils.QueryToJSONString(a.DB, a.Query)
+// Reference: https://kylewbanks.com/blog/query-result-to-map-in-golang
+func (a *SQL) Assert() error {
+	result := []map[string]interface{}{}
+	rows, err := a.DB.Query(a.Query.Statement, a.Query.Params...)
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("failed to call database in sql operation: %s", a.Query))
+		return errors.Wrap(err, "failed to execute SQL query")
+	}
+	cols, _ := rows.Columns()
+
+	for rows.Next() {
+		columns := make([]interface{}, len(cols))
+		columnPointers := make([]interface{}, len(cols))
+		for i, _ := range columns {
+			columnPointers[i] = &columns[i]
+		}
+
+		// Scan the result into the column pointers...
+		if err := rows.Scan(columnPointers...); err != nil {
+			return err
+		}
+
+		// Create our map, and retrieve the value for each column from the pointers slice,
+		// storing it in the map with the name of the column as the key.
+		m := make(map[string]interface{})
+		for i, colName := range cols {
+			val := columnPointers[i].(*interface{})
+			m[colName] = *val
+		}
+
+		result = append(result, m)
 	}
 
-	resultTrim := utils.Trim(sqlResult)
-	resultExpected := utils.Trim(a.ResultExpected)
-	if resultTrim != resultExpected {
-		return errors.Errorf("sql operation should be %s it got %s", resultExpected, resultTrim)
+	numResults := len(result)
+	numExpectedResult := len(a.Result)
+	if numResults != numExpectedResult {
+		return fmt.Errorf("SQL results don't match, it should have %d rows but it got %d rows", numExpectedResult, numResults)
+	}
+
+	for i, r := range result {
+		for key, val := range r {
+			if fmt.Sprint(a.Result[i][key]) != fmt.Sprint(val) {
+				return fmt.Errorf("SQL result number %d don't match, it should be %v but it got %v", i, a.Result[i], r)
+			}
+		}
 	}
 
 	return nil

@@ -8,6 +8,8 @@ import (
 
 	"github.com/jarcoal/httpmock"
 	"github.com/lucasvmiguel/integration/assertion"
+	"github.com/lucasvmiguel/integration/call"
+	"github.com/lucasvmiguel/integration/expect"
 	"github.com/lucasvmiguel/integration/internal/utils"
 	"github.com/pkg/errors"
 	"github.com/tidwall/sjson"
@@ -21,46 +23,13 @@ type TestCase struct {
 
 	// Request is what the test case will try to call
 	// eg: [POST] https://jsonplaceholder.typicode.com/todos
-	Request Request
+	Request call.Request
 
-	// ResponseExpected is going to be used to assert if the HTTP endpoint returned what was expected.
-	ResponseExpected ResponseExpected
+	// Response is going to be used to assert if the HTTP endpoint returned what was expected.
+	Response expect.Response
 
 	// Assertions that will run in test case
 	Assertions []assertion.Assertion
-}
-
-// Request represents an HTTP request
-type Request struct {
-	// URL that will be called on the request
-	// eg: https://jsonplaceholder.typicode.com/todos
-	URL string
-	// Method that will be called on the request
-	// eg: POST
-	Method string
-	// Body that will be sent with the request
-	// a multiline string is valid
-	// eg: { "foo": "bar" }
-	Body string
-	// Header will be sent with the request
-	// eg: content-type=application/json
-	Header http.Header
-}
-
-// ResponseExpected represents an HTTP response
-type ResponseExpected struct {
-	// StatusCode is the HTTP status code of the response
-	StatusCode int
-	// Body is the HTTP response body
-	Body string
-	// IgnoreBodyFields is used to ignore the assertion of some of the body field
-	// The syntax used to ignore fields can be found here: https://github.com/tidwall/sjson
-	// eg: ["data.transaction_id", "id"]
-	IgnoreBodyFields []string
-	// Header is the HTTP response headers.
-	// Every header set in here will be asserted, others will be ignored.
-	// eg: content-type=application/json
-	Header http.Header
 }
 
 // Test runs a test case
@@ -86,7 +55,7 @@ func Test(testCase TestCase) error {
 		return errors.New(errString(err, testCase, "failed to call HTTP endpoint"))
 	}
 
-	err = assertResponse(testCase.ResponseExpected, resp)
+	err = assertResponse(testCase.Response, resp)
 	if err != nil {
 		return errors.New(errString(err, testCase, "failed to assert HTTP response"))
 	}
@@ -101,7 +70,7 @@ func Test(testCase TestCase) error {
 	return nil
 }
 
-func assertResponse(expected ResponseExpected, resp *http.Response) error {
+func assertResponse(expected expect.Response, resp *http.Response) error {
 	defer resp.Body.Close()
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {

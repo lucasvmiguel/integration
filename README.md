@@ -167,4 +167,3 @@ It's important to mention that this project contains the following libs:
 - github.com/pkg/errors
 - github.com/tidwall/gjson
 - github.com/tidwall/sjson
-- github.com/elgs/gosqljson

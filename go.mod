@@ -9,6 +9,8 @@ require (
 )
 
 require (
+	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/go-test/deep v1.0.8 // indirect
 	github.com/mattn/go-sqlite3 v1.14.15 // indirect
 	github.com/tidwall/gjson v1.14.2 // indirect
 	github.com/tidwall/match v1.1.1 // indirect

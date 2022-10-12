@@ -8,6 +8,8 @@ import (
 	"testing"
 
 	"github.com/lucasvmiguel/integration/assertion"
+	"github.com/lucasvmiguel/integration/call"
+	"github.com/lucasvmiguel/integration/expect"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -44,17 +46,17 @@ func TestHandlerCallHTTPGet_Success(t *testing.T) {
 
 	err := Test(TestCase{
 		Description: "TestHandlerCallHTTPGet_Success",
-		Request: Request{
+		Request: call.Request{
 			URL:    "http://localhost:8080/handlerCallHTTPGet",
 			Method: goHTTP.MethodGet,
 		},
-		ResponseExpected: ResponseExpected{
+		Response: expect.Response{
 			StatusCode: goHTTP.StatusOK,
 			Body:       "hello",
 		},
 		Assertions: []assertion.Assertion{
-			&assertion.HTTPAssertion{
-				RequestExpected: assertion.RequestExpected{
+			&assertion.HTTP{
+				Request: expect.Request{
 					URL:    "https://jsonplaceholder.typicode.com/posts/1",
 					Method: goHTTP.MethodGet,
 				},
@@ -67,36 +69,36 @@ func TestHandlerCallHTTPGet_Success(t *testing.T) {
 	}
 }
 
-func TestHandlerCallHTTPGet_SuccessWithSQLAssertion(t *testing.T) {
+func TestHandlerCallHTTPGet_SuccessWithSQL(t *testing.T) {
 	db, _ := connectToDatabase()
 	err := Test(TestCase{
 		Description: "TestHandlerCallHTTPGet_Success",
-		Request: Request{
+		Request: call.Request{
 			URL:    "http://localhost:8080/handlerCallHTTPGet",
 			Method: goHTTP.MethodGet,
 		},
-		ResponseExpected: ResponseExpected{
+		Response: expect.Response{
 			StatusCode: goHTTP.StatusOK,
 			Body:       "hello",
 		},
 		Assertions: []assertion.Assertion{
-			&assertion.HTTPAssertion{
-				RequestExpected: assertion.RequestExpected{
+			&assertion.HTTP{
+				Request: expect.Request{
 					URL:    "https://jsonplaceholder.typicode.com/posts/1",
 					Method: goHTTP.MethodGet,
 				},
 			},
-			&assertion.SQLAssertion{
+			&assertion.SQL{
 				DB: db,
-				Query: `
-				SELECT id, title, description, category_id FROM products
-				`,
-				ResultExpected: `
-				[
-					{"category_id":"1","description":"bar1","id":"1","title":"foo1"},
-					{"category_id":"1","description":"bar2","id":"2","title":"foo2"}
-				]
-				`,
+				Query: call.Query{
+					Statement: `
+					SELECT id, title, description, category_id FROM products
+					`,
+				},
+				Result: expect.Result{
+					{"id": 1, "title": "foo1", "description": "bar1", "category_id": 1},
+					{"id": 2, "title": "foo2", "description": "bar2", "category_id": 1},
+				},
 			},
 		},
 	})
@@ -109,17 +111,17 @@ func TestHandlerCallHTTPGet_SuccessWithSQLAssertion(t *testing.T) {
 func TestHandlerCallHTTPGet_FailedMethod(t *testing.T) {
 	err := Test(TestCase{
 		Description: "TestHandlerCallHTTPGet_FailedMethod",
-		Request: Request{
+		Request: call.Request{
 			URL:    "http://localhost:8080/handlerCallHTTPGet",
 			Method: goHTTP.MethodPatch,
 		},
-		ResponseExpected: ResponseExpected{
+		Response: expect.Response{
 			StatusCode: goHTTP.StatusOK,
 			Body:       "hello",
 		},
 		Assertions: []assertion.Assertion{
-			&assertion.HTTPAssertion{
-				RequestExpected: assertion.RequestExpected{
+			&assertion.HTTP{
+				Request: expect.Request{
 					URL:    "https://jsonplaceholder.typicode.com/posts/1",
 					Method: goHTTP.MethodGet,
 				},
@@ -135,17 +137,17 @@ func TestHandlerCallHTTPGet_FailedMethod(t *testing.T) {
 func TestHandlerCallHTTPGet_FailedURL(t *testing.T) {
 	err := Test(TestCase{
 		Description: "TestHandlerCallHTTPGet_FailedURL",
-		Request: Request{
+		Request: call.Request{
 			URL:    "http://localhost:8080/invalid",
 			Method: goHTTP.MethodGet,
 		},
-		ResponseExpected: ResponseExpected{
+		Response: expect.Response{
 			StatusCode: goHTTP.StatusOK,
 			Body:       "hello",
 		},
 		Assertions: []assertion.Assertion{
-			&assertion.HTTPAssertion{
-				RequestExpected: assertion.RequestExpected{
+			&assertion.HTTP{
+				Request: expect.Request{
 					URL:    "https://jsonplaceholder.typicode.com/posts/1",
 					Method: goHTTP.MethodGet,
 				},
@@ -161,17 +163,17 @@ func TestHandlerCallHTTPGet_FailedURL(t *testing.T) {
 func TestHandlerCallHTTPGet_WrongStatus(t *testing.T) {
 	err := Test(TestCase{
 		Description: "TestHandlerCallHTTPGet_WrongStatus",
-		Request: Request{
+		Request: call.Request{
 			URL:    "http://localhost:8080/handlerCallHTTPGet",
 			Method: goHTTP.MethodGet,
 		},
-		ResponseExpected: ResponseExpected{
+		Response: expect.Response{
 			StatusCode: goHTTP.StatusCreated,
 			Body:       "hello",
 		},
 		Assertions: []assertion.Assertion{
-			&assertion.HTTPAssertion{
-				RequestExpected: assertion.RequestExpected{
+			&assertion.HTTP{
+				Request: expect.Request{
 					URL:    "https://jsonplaceholder.typicode.com/posts/1",
 					Method: goHTTP.MethodGet,
 				},
@@ -187,17 +189,17 @@ func TestHandlerCallHTTPGet_WrongStatus(t *testing.T) {
 func TestHandlerCallHTTPGet_WrongResponseBody(t *testing.T) {
 	err := Test(TestCase{
 		Description: "TestHandlerCallHTTPGet_WrongResponseBody",
-		Request: Request{
+		Request: call.Request{
 			URL:    "http://localhost:8080/handlerCallHTTPGet",
 			Method: goHTTP.MethodGet,
 		},
-		ResponseExpected: ResponseExpected{
+		Response: expect.Response{
 			StatusCode: goHTTP.StatusOK,
 			Body:       "invalid",
 		},
 		Assertions: []assertion.Assertion{
-			&assertion.HTTPAssertion{
-				RequestExpected: assertion.RequestExpected{
+			&assertion.HTTP{
+				Request: expect.Request{
 					URL:    "https://jsonplaceholder.typicode.com/posts/1",
 					Method: goHTTP.MethodGet,
 				},
@@ -213,17 +215,17 @@ func TestHandlerCallHTTPGet_WrongResponseBody(t *testing.T) {
 func TestHandlerCallHTTPGet_InvalidHTTPAssertion(t *testing.T) {
 	err := Test(TestCase{
 		Description: "TestHandlerCallHTTPGet_InvalidAssertionHTTP",
-		Request: Request{
+		Request: call.Request{
 			URL:    "http://localhost:8080/handlerCallHTTPGet",
 			Method: goHTTP.MethodGet,
 		},
-		ResponseExpected: ResponseExpected{
+		Response: expect.Response{
 			StatusCode: goHTTP.StatusOK,
 			Body:       "hello",
 		},
 		Assertions: []assertion.Assertion{
-			&assertion.HTTPAssertion{
-				RequestExpected: assertion.RequestExpected{
+			&assertion.HTTP{
+				Request: expect.Request{
 					URL:    "https://invalid",
 					Method: goHTTP.MethodGet,
 				},
@@ -236,31 +238,31 @@ func TestHandlerCallHTTPGet_InvalidHTTPAssertion(t *testing.T) {
 	}
 }
 
-func TestHandlerCallHTTPGet_InvalidSQLAssertion(t *testing.T) {
+func TestHandlerCallHTTPGet_InvalidSQL(t *testing.T) {
 	db, _ := connectToDatabase()
 	err := Test(TestCase{
 		Description: "TestHandlerCallHTTPGet_Success",
-		Request: Request{
+		Request: call.Request{
 			URL:    "http://localhost:8080/handlerCallHTTPGet",
 			Method: goHTTP.MethodGet,
 		},
-		ResponseExpected: ResponseExpected{
+		Response: expect.Response{
 			StatusCode: goHTTP.StatusOK,
 			Body:       "hello",
 		},
 		Assertions: []assertion.Assertion{
-			&assertion.HTTPAssertion{
-				RequestExpected: assertion.RequestExpected{
+			&assertion.HTTP{
+				Request: expect.Request{
 					URL:    "https://jsonplaceholder.typicode.com/posts/1",
 					Method: goHTTP.MethodGet,
 				},
 			},
-			&assertion.SQLAssertion{
+			&assertion.SQL{
 				DB: db,
-				Query: `
-				SELECT * FROM unknown
-				`,
-				ResultExpected: `[]`,
+				Query: call.Query{
+					Statement: "SELECT * FROM unknown",
+				},
+				Result: expect.Result{},
 			},
 		},
 	})

@@ -7,13 +7,15 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/lucasvmiguel/integration/expect"
 	"github.com/lucasvmiguel/integration/internal/utils"
+	"github.com/lucasvmiguel/integration/mock"
 
 	"github.com/jarcoal/httpmock"
 )
 
 func TestHTTPAssert_Success(t *testing.T) {
-	assertion := HTTPAssertion{}
+	assertion := HTTP{}
 
 	err := assertion.Assert()
 	if err != nil {
@@ -38,14 +40,14 @@ func TestHTTPSetup_Success(t *testing.T) {
 		"message": "success"
 	}`
 	respStatusCode := http.StatusAccepted
-	assertion := HTTPAssertion{
-		RequestExpected: RequestExpected{
+	assertion := HTTP{
+		Request: expect.Request{
 			URL:    url,
 			Method: http.MethodPost,
 			Body:   reqBody,
 			Header: header,
 		},
-		ResponseMock: ResponseMock{
+		Response: mock.Response{
 			StatusCode: respStatusCode,
 			Body:       respBody,
 		},
@@ -107,15 +109,15 @@ func TestHTTPSetup_SuccessWithIgnoreBodyFields(t *testing.T) {
 		"message": "success"
 	}`
 	respStatusCode := http.StatusAccepted
-	assertion := HTTPAssertion{
-		RequestExpected: RequestExpected{
+	assertion := HTTP{
+		Request: expect.Request{
 			IgnoreBodyFields: []string{"userId"},
 			URL:              url,
 			Method:           http.MethodPost,
 			Body:             reqBodyExpected,
 			Header:           header,
 		},
-		ResponseMock: ResponseMock{
+		Response: mock.Response{
 			StatusCode: respStatusCode,
 			Body:       respBody,
 		},
@@ -160,12 +162,12 @@ func TestHTTPSetup_FailedURL(t *testing.T) {
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
 
-	assertion := HTTPAssertion{
-		RequestExpected: RequestExpected{
+	assertion := HTTP{
+		Request: expect.Request{
 			URL:    "http://unknown",
 			Method: http.MethodPost,
 		},
-		ResponseMock: ResponseMock{
+		Response: mock.Response{
 			StatusCode: http.StatusOK,
 		},
 	}
@@ -189,13 +191,13 @@ func TestHTTPSetup_FailedRequestHeader(t *testing.T) {
 	headerKey := "Content-type"
 	headerValues := []string{"application/json; charset=UTF-8"}
 	header := http.Header{headerKey: headerValues}
-	assertion := HTTPAssertion{
-		RequestExpected: RequestExpected{
+	assertion := HTTP{
+		Request: expect.Request{
 			URL:    url,
 			Method: http.MethodGet,
 			Header: header,
 		},
-		ResponseMock: ResponseMock{
+		Response: mock.Response{
 			StatusCode: http.StatusOK,
 		},
 	}
@@ -221,12 +223,12 @@ func TestHTTPSetup_FailedMethod(t *testing.T) {
 	defer httpmock.DeactivateAndReset()
 
 	url := "https://jsonplaceholder.typicode.com/posts"
-	assertion := HTTPAssertion{
-		RequestExpected: RequestExpected{
+	assertion := HTTP{
+		Request: expect.Request{
 			URL:    url,
 			Method: http.MethodGet,
 		},
-		ResponseMock: ResponseMock{
+		Response: mock.Response{
 			StatusCode: http.StatusOK,
 		},
 	}
@@ -257,13 +259,13 @@ func TestHTTPSetup_FailedRequestBody(t *testing.T) {
 		"body": "bar",
 		"userId": 1
 	}`
-	assertion := HTTPAssertion{
-		RequestExpected: RequestExpected{
+	assertion := HTTP{
+		Request: expect.Request{
 			URL:    url,
 			Method: http.MethodPost,
 			Body:   reqBody,
 		},
-		ResponseMock: ResponseMock{
+		Response: mock.Response{
 			StatusCode: http.StatusAccepted,
 		},
 	}
