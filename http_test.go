@@ -3,10 +3,11 @@ package http
 import (
 	"database/sql"
 	"fmt"
-	"integration/assertion"
 	goHTTP "net/http"
 	"os"
 	"testing"
+
+	"github.com/lucasvmiguel/integration/assertion"
 
 	_ "github.com/mattn/go-sqlite3"
 )

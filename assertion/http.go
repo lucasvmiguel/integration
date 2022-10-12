@@ -2,9 +2,10 @@ package assertion
 
 import (
 	"fmt"
-	"integration/internal/utils"
 	"io"
 	"net/http"
+
+	"github.com/lucasvmiguel/integration/internal/utils"
 
 	"github.com/jarcoal/httpmock"
 	"github.com/pkg/errors"

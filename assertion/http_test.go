@@ -2,11 +2,12 @@ package assertion
 
 import (
 	"bytes"
-	"integration/internal/utils"
 	"io"
 	"net/http"
 	"strings"
 	"testing"
+
+	"github.com/lucasvmiguel/integration/internal/utils"
 
 	"github.com/jarcoal/httpmock"
 )

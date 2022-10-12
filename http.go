@@ -3,12 +3,12 @@ package http
 import (
 	"bytes"
 	"fmt"
-	"integration/assertion"
-	"integration/internal/utils"
 	"io"
 	"net/http"
 
 	"github.com/jarcoal/httpmock"
+	"github.com/lucasvmiguel/integration/assertion"
+	"github.com/lucasvmiguel/integration/internal/utils"
 	"github.com/pkg/errors"
 	"github.com/tidwall/sjson"
 )

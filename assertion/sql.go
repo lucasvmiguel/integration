@@ -3,7 +3,8 @@ package assertion
 import (
 	"database/sql"
 	"fmt"
-	"integration/internal/utils"
+
+	"github.com/lucasvmiguel/integration/internal/utils"
 
 	"github.com/pkg/errors"
 )
