@@ -18,7 +18,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
       - name: Lint code
-        uses: go vet ./...
+        run: |
+          go vet ./...
 
   test:
     runs-on: ubuntu-latest
