@@ -1,5 +1,6 @@
 # Integration
 
+[![run tests](https://github.com/lucasvmiguel/integration/actions/workflows/test.yml/badge.svg)](https://github.com/lucasvmiguel/integration/actions/workflows/test.yml)
 <a href="https://godoc.org/github.com/lucasvmiguel/integration"><img src="https://img.shields.io/badge/api-reference-blue.svg?style=flat-square" alt="GoDoc"></a>
 
 Integration is a Golang tool to run integration tests. Currently, this library only supports an HTTP request and response model.
@@ -185,7 +186,10 @@ type Result []map[string]any
 
 #### HTTP
 
-HTTP assertion checks if an HTTP request was sent while your endpoint was being called. See below how to use it.
+HTTP assertion checks if an HTTP request was sent while your endpoint was being called.
+The test will fail if you don't call the endpoints configured on the HTTP assertion. However, if you call multiple times an endpoint and you just have one HTTP assertion configured, the test will pass.
+
+See below how to use it:
 
 ```go
 func TestHandlerCallHTTPGet_Success(t *testing.T) {
@@ -259,6 +263,7 @@ type Request struct {
 // Response is used to return a mocked response
 type Response struct {
 	// StatusCode that will be returned in the mocked HTTP response
+	// default value is 200
 	StatusCode int
 	// Body that will be returned in the mocked HTTP response.
 	// A multiline string is valid.
@@ -266,6 +271,12 @@ type Response struct {
 	Body string
 }
 ```
+
+## Roadmap
+
+Feel free to create issues for features or fixes.
+
+https://github.com/lucasvmiguel/integration/issues
 
 ## License
 

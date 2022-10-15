@@ -55,7 +55,12 @@ func (a *HTTP) Setup() error {
 				}
 			}
 
-			return httpmock.NewStringResponse(a.Response.StatusCode, utils.Trim(a.Response.Body)), nil
+			statusCode := a.Response.StatusCode
+			if statusCode == 0 {
+				statusCode = http.StatusOK
+			}
+
+			return httpmock.NewStringResponse(statusCode, utils.Trim(a.Response.Body)), nil
 		},
 	)
 
@@ -64,5 +69,13 @@ func (a *HTTP) Setup() error {
 
 // Setup does not do anything because the assertions are created on the setup for the HTTP
 func (a *HTTP) Assert() error {
-	return nil
+	reqInfo := fmt.Sprintf("%s %s", a.Request.Method, a.Request.URL)
+	callCountInfo := httpmock.GetCallCountInfo()
+
+	times, ok := callCountInfo[reqInfo]
+	if ok && times > 0 {
+		return nil
+	}
+
+	return fmt.Errorf("HTTP request '%s' has never been called", reqInfo)
 }

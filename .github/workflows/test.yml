@@ -2,11 +2,9 @@ on:
   push:
     branches:
       - master
-      - main
   pull_request:
     branches:
       - master
-      - main
 
 name: run tests
 jobs:
@@ -19,8 +17,9 @@ jobs:
           go-version: 1.19
       - name: Checkout code
         uses: actions/checkout@v2
-      - name: Lint Code Base
-        uses: github/super-linter@v4
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v3
+
   test:
     runs-on: ubuntu-latest
     steps:

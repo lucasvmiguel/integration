@@ -14,11 +14,106 @@ import (
 	"github.com/jarcoal/httpmock"
 )
 
-func TestHTTPAssert_Success(t *testing.T) {
+func TestHTTPAssert_NoRequestCalled(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
 	assertion := HTTP{}
 
-	err := assertion.Assert()
+	err := assertion.Setup()
 	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = assertion.Assert()
+	if err == nil {
+		t.Fatal(err)
+	}
+}
+
+func TestHTTPAssert_RequestCalled(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
+	assertion := HTTP{
+		Request: expect.Request{
+			URL:    "https://jsonplaceholder.typicode.com/posts/1",
+			Method: http.MethodGet,
+		},
+	}
+
+	err := assertion.Setup()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resp, err := http.Get("https://jsonplaceholder.typicode.com/posts/1")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("default status code should be %d", http.StatusOK)
+	}
+
+	err = assertion.Assert()
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestHTTPAssert_RequestCalledMoreThanOnce(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
+	assertion := HTTP{
+		Request: expect.Request{
+			URL:    "https://jsonplaceholder.typicode.com/posts/1",
+			Method: http.MethodGet,
+		},
+	}
+
+	err := assertion.Setup()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = http.Get("https://jsonplaceholder.typicode.com/posts/1")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = http.Get("https://jsonplaceholder.typicode.com/posts/1")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = assertion.Assert()
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestHTTPAssert_RequestCalledAnotherEndpoint(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
+	assertion := HTTP{
+		Request: expect.Request{
+			URL:    "https://jsonplaceholder.typicode.com/posts/1",
+			Method: http.MethodGet,
+		},
+	}
+
+	err := assertion.Setup()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	http.Get("https://unknown")
+
+	err = assertion.Assert()
+	if err == nil {
 		t.Fatal(err)
 	}
 }
