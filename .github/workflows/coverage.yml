@@ -4,6 +4,7 @@ on:
     branches:
       - master
 
+name: run test coverage
 jobs:
   test:
     runs-on: ubuntu-latest

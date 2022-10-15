@@ -110,7 +110,10 @@ func TestHTTPAssert_RequestCalledAnotherEndpoint(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	http.Get("https://unknown")
+	_, err = http.Get("https://unknown")
+	if err == nil {
+		t.Fatal(err)
+	}
 
 	err = assertion.Assert()
 	if err == nil {
