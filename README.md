@@ -122,14 +122,14 @@ SQL assertion checks if an SQL query returns an expected result. See below how t
 ```go
 func TestHandlerCallHTTPGet_SuccessWithSQL(t *testing.T) {
 	db, _ := connectToDatabase()
-	err := Test(TestCase{
+	err := integration.Test(integration.TestCase{
 		Description: "TestHandlerCallHTTPGet_Success",
 		Request: call.Request{
 			URL:    "http://localhost:8080/handlerCallHTTPGet",
-			Method: goHTTP.MethodGet,
+			Method: http.MethodGet,
 		},
 		Response: expect.Response{
-			StatusCode: goHTTP.StatusOK,
+			StatusCode: http.StatusOK,
 			Body:       "hello",
 		},
 		Assertions: []assertion.Assertion{
@@ -195,21 +195,21 @@ See below how to use it:
 ```go
 func TestHandlerCallHTTPGet_Success(t *testing.T) {
 
-	err := Test(TestCase{
+	err := integration.Test(integration.TestCase{
 		Description: "TestHandlerCallHTTPGet_Success",
 		Request: call.Request{
 			URL:    "http://localhost:8080/handlerCallHTTPGet",
-			Method: goHTTP.MethodGet,
+			Method: http.MethodGet,
 		},
 		Response: expect.Response{
-			StatusCode: goHTTP.StatusOK,
+			StatusCode: http.StatusOK,
 			Body:       "hello",
 		},
 		Assertions: []assertion.Assertion{
 			&assertion.HTTP{
 				Request: expect.Request{
 					URL:    "https://jsonplaceholder.typicode.com/posts/1",
-					Method: goHTTP.MethodGet,
+					Method: http.MethodGet,
 				},
 				Response: mock.Response{
 					StatusCode: http.StatusOK,

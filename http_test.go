@@ -2,6 +2,7 @@ package integration
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	goHTTP "net/http"
 	"os"
@@ -13,6 +14,16 @@ import (
 
 	_ "github.com/mattn/go-sqlite3"
 )
+
+const (
+	title  = "some title"
+	userId = 1
+)
+
+type Body struct {
+	Title  string `json:"title"`
+	UserID int    `json:"userId"`
+}
 
 func handlerCallHTTPGet(w goHTTP.ResponseWriter, req *goHTTP.Request) {
 	if req.Method != goHTTP.MethodGet {
@@ -28,8 +39,43 @@ func handlerCallHTTPGet(w goHTTP.ResponseWriter, req *goHTTP.Request) {
 	fmt.Fprintf(w, "hello")
 }
 
+func handlerCallHTTPPost(w goHTTP.ResponseWriter, req *goHTTP.Request) {
+	if req.Method != goHTTP.MethodPost {
+		goHTTP.NotFound(w, req)
+		return
+	}
+
+	body := Body{}
+	err := json.NewDecoder(req.Body).Decode(&body)
+	if err != nil {
+		goHTTP.Error(w, err.Error(), goHTTP.StatusBadRequest)
+		return
+	}
+
+	if body.Title != title || body.UserID != userId {
+		goHTTP.Error(w, "invalid body sent", goHTTP.StatusBadRequest)
+		return
+	}
+
+	_, err = goHTTP.Post("https://jsonplaceholder.typicode.com/posts", "application/json", req.Body)
+	if err != nil {
+		goHTTP.Error(w, err.Error(), goHTTP.StatusInternalServerError)
+		return
+	}
+
+	resp, err := json.Marshal(body)
+	if err != nil {
+		goHTTP.Error(w, err.Error(), goHTTP.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(goHTTP.StatusCreated)
+	w.Write(resp)
+}
+
 func init() {
 	goHTTP.HandleFunc("/handlerCallHTTPGet", handlerCallHTTPGet)
+	goHTTP.HandleFunc("/handlerCallHTTPPost", handlerCallHTTPPost)
 
 	db, err := connectToDatabase()
 	if err != nil {
@@ -40,6 +86,39 @@ func init() {
 	seed(db)
 
 	go goHTTP.ListenAndServe(":8080", nil)
+}
+
+func TestHandlerCallHTTPPost_Success(t *testing.T) {
+	err := Test(TestCase{
+		Description: "TestHandlerCallHTTPPost_Success",
+		Request: call.Request{
+			URL:    "http://localhost:8080/handlerCallHTTPPost",
+			Method: goHTTP.MethodPost,
+			Body: fmt.Sprintf(`{
+				"title": "%s",
+				"userId": %d
+			}`, title, userId),
+		},
+		Response: expect.Response{
+			StatusCode: goHTTP.StatusCreated,
+			Body: fmt.Sprintf(`{
+				"title":"%s",
+				"userId":%d
+			}`, title, userId),
+		},
+		Assertions: []assertion.Assertion{
+			&assertion.HTTP{
+				Request: expect.Request{
+					URL:    "https://jsonplaceholder.typicode.com/posts",
+					Method: goHTTP.MethodPost,
+				},
+			},
+		},
+	})
+
+	if err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestHandlerCallHTTPGet_Success(t *testing.T) {
