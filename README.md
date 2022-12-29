@@ -30,8 +30,6 @@ import (
 	"github.com/lucasvmiguel/integration/expect"
 )
 
-type Result []map[string]interface{}
-
 func init() {
 	http.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("pong"))
@@ -41,7 +39,7 @@ func init() {
 }
 
 func TestPingEndpoint(t *testing.T) {
-	testCase := integration.TestCase{
+	err := integration.Test(integration.TestCase{
 		Description: "Testing ping endpoint",
 		Request: call.Request{
 			URL:    "http://localhost:8080/ping",
@@ -51,9 +49,8 @@ func TestPingEndpoint(t *testing.T) {
 			StatusCode: http.StatusOK,
 			Body:       "pong",
 		},
-	}
+	})
 
-	err := integration.Test(testCase)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -109,20 +106,20 @@ type Response struct {
 
 You can ignore response body field assertion adding the `<<PRESENSE>>` annotation, check the following example
 ```go
-	err := integration.Test(integration.TestCase{
-		Description: "Test Ignored field",
-		Request: call.Request{
-			URL:    "http://localhost:8080/test",
-			Method: goHTTP.MethodPost
-		},
-		Response: expect.Response{
-			StatusCode: goHTTP.StatusCreated,
-			Body: `{
-				"title": "some title",
-				"code": "<<PRESENCE>>"
-			}`,
-		},
-	})
+integration.TestCase{
+	Description: "Test Ignored field",
+	Request: call.Request{
+		URL:    "http://localhost:8080/test",
+		Method: goHTTP.MethodPost
+	},
+	Response: expect.Response{
+		StatusCode: goHTTP.StatusCreated,
+		Body: `{
+			"title": "some title",
+			"code": "<<PRESENCE>>"
+		}`,
+	},
+}
 ```
 Reference: https://github.com/kinbiko/jsonassert
 
@@ -210,7 +207,6 @@ See below how to use it:
 
 ```go
 func TestEndpoint(t *testing.T) {
-
 	err := integration.Test(integration.TestCase{
 		Description: "Test Endpoint",
 		Request: call.Request{
