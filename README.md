@@ -301,4 +301,4 @@ It's important to mention that this project contains the following libs:
 
 - github.com/jarcoal/httpmock
 - github.com/pkg/errors
-- https://github.com/kinbiko/jsonassert
+- github.com/kinbiko/jsonassert
