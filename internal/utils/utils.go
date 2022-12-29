@@ -24,6 +24,18 @@ func Trim(str string) string {
 
 // Checks if a string is in JSON format
 func IsJSON(s string) bool {
-	var js map[string]interface{}
-	return json.Unmarshal([]byte(s), &js) == nil
+	var v interface{}
+	err := json.Unmarshal([]byte(s), &v)
+	if err != nil {
+		return false
+	}
+
+	switch v.(type) {
+	case []interface{}:
+		return true
+	case map[string]interface{}:
+		return true
+	default:
+		return false
+	}
 }

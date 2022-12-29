@@ -47,6 +47,35 @@ func TestIsJSON_JSON(t *testing.T) {
 	}
 }
 
+func TestIsJSON_InvalidJSON(t *testing.T) {
+	str := `{
+		"message": invalid
+	}`
+
+	expected := false
+	result := IsJSON(str)
+	if result != expected {
+		t.Fatalf("result should be '%v', it got '%v'", expected, result)
+	}
+}
+
+func TestIsJSON_JSONArray(t *testing.T) {
+	str := `[
+		{
+			"message": "foo"
+		},
+		{
+			"message": "bar"
+		}
+	]`
+
+	expected := true
+	result := IsJSON(str)
+	if result != expected {
+		t.Fatalf("result should be '%v', it got '%v'", expected, result)
+	}
+}
+
 func TestIsJSON_String(t *testing.T) {
 	str := `
 		hello
