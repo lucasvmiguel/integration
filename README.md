@@ -1,6 +1,6 @@
 # Integration
 
-![Coverage](https://img.shields.io/badge/Coverage-87.3%25-brightgreen)
+![Coverage](https://img.shields.io/badge/Coverage-87.1%25-brightgreen)
 [![run tests](https://github.com/lucasvmiguel/integration/actions/workflows/test.yml/badge.svg)](https://github.com/lucasvmiguel/integration/actions/workflows/test.yml)
 <a href="https://godoc.org/github.com/lucasvmiguel/integration"><img src="https://img.shields.io/badge/api-reference-blue.svg?style=flat-square" alt="GoDoc"></a>
 
