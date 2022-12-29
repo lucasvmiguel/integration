@@ -100,16 +100,31 @@ type Response struct {
 	StatusCode int
 	// Body expected in the HTTP response
 	Body string
-	// IgnoreBodyFields is used to ignore the assertion of some of the body field
-	// The syntax used to ignore fields can be found here: https://github.com/tidwall/sjson
-	// eg: ["data.transaction_id", "id"]
-	IgnoreBodyFields []string
 	// Header expected in the HTTP response.
 	// Every header set in here will be asserted, others will be ignored.
 	// eg: content-type=application/json
 	Header http.Header
 }
 ```
+
+You can ignore response body field assertion adding the `<<PRESENSE>>` annotation, check the following example
+```go
+	err := integration.Test(integration.TestCase{
+		Description: "Test Ignored field",
+		Request: call.Request{
+			URL:    "http://localhost:8080/test",
+			Method: goHTTP.MethodPost
+		},
+		Response: expect.Response{
+			StatusCode: goHTTP.StatusCreated,
+			Body: `{
+				"title": "some title",
+				"code": "<<PRESENCE>>"
+			}`,
+		},
+	})
+```
+Reference: https://github.com/kinbiko/jsonassert
 
 ### Assertions
 
@@ -120,12 +135,13 @@ There are few different assertion. See them below:
 SQL assertion checks if an SQL query returns an expected result. See below how to use it.
 
 ```go
-func TestHandlerCallHTTPGet_SuccessWithSQL(t *testing.T) {
+func TestEndpoint(t *testing.T) {
 	db, _ := connectToDatabase()
+	
 	err := integration.Test(integration.TestCase{
-		Description: "TestHandlerCallHTTPGet_Success",
+		Description: "Test Endpoint",
 		Request: call.Request{
-			URL:    "http://localhost:8080/handlerCallHTTPGet",
+			URL:    "http://localhost:8080/test",
 			Method: http.MethodGet,
 		},
 		Response: expect.Response{
@@ -193,12 +209,12 @@ The test will fail if you don't call the endpoints configured on the HTTP assert
 See below how to use it:
 
 ```go
-func TestHandlerCallHTTPGet_Success(t *testing.T) {
+func TestEndpoint(t *testing.T) {
 
 	err := integration.Test(integration.TestCase{
-		Description: "TestHandlerCallHTTPGet_Success",
+		Description: "Test Endpoint",
 		Request: call.Request{
-			URL:    "http://localhost:8080/handlerCallHTTPGet",
+			URL:    "http://localhost:8080/test",
 			Method: http.MethodGet,
 		},
 		Response: expect.Response{
@@ -253,12 +269,10 @@ type Request struct {
 	// A multiline string is valid.
 	// eg: { "foo": "bar" }
 	Body string
-	// IgnoreBodyFields is used to ignore the assertion of some of the body field
-	// The syntax used to ignore fields can be found here: https://github.com/tidwall/sjson
-	// eg: ["data.transaction_id", "id"]
-	IgnoreBodyFields []string
 }
 ```
+
+You can also ignore request body field assertion adding the annotation `<<PRESENSE>>` 
 
 ```go
 // Response is used to return a mocked response
@@ -287,5 +301,4 @@ It's important to mention that this project contains the following libs:
 
 - github.com/jarcoal/httpmock
 - github.com/pkg/errors
-- github.com/tidwall/gjson
-- github.com/tidwall/sjson
+- https://github.com/kinbiko/jsonassert

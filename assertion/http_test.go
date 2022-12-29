@@ -201,7 +201,8 @@ func TestHTTPSetup_SuccessWithIgnoreBodyFields(t *testing.T) {
 	}`
 	reqBodyExpected := `{
 		"title": "foo",
-		"body": "bar"
+		"body": "bar",
+		"userId": "<<PRESENCE>>"
 	}`
 	respBody := `{
 		"message": "success"
@@ -209,11 +210,10 @@ func TestHTTPSetup_SuccessWithIgnoreBodyFields(t *testing.T) {
 	respStatusCode := http.StatusAccepted
 	assertion := HTTP{
 		Request: expect.Request{
-			IgnoreBodyFields: []string{"userId"},
-			URL:              url,
-			Method:           http.MethodPost,
-			Body:             reqBodyExpected,
-			Header:           header,
+			URL:    url,
+			Method: http.MethodPost,
+			Body:   reqBodyExpected,
+			Header: header,
 		},
 		Response: mock.Response{
 			StatusCode: respStatusCode,

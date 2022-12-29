@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"io"
 	goHTTP "net/http"
 	"os"
 	"testing"
@@ -14,16 +15,6 @@ import (
 
 	_ "github.com/mattn/go-sqlite3"
 )
-
-const (
-	title  = "some title"
-	userId = 1
-)
-
-type Body struct {
-	Title  string `json:"title"`
-	UserID int    `json:"userId"`
-}
 
 func handlerCallHTTPGet(w goHTTP.ResponseWriter, req *goHTTP.Request) {
 	if req.Method != goHTTP.MethodGet {
@@ -39,20 +30,23 @@ func handlerCallHTTPGet(w goHTTP.ResponseWriter, req *goHTTP.Request) {
 	fmt.Fprintf(w, "hello")
 }
 
-func handlerCallHTTPPost(w goHTTP.ResponseWriter, req *goHTTP.Request) {
+func handlerCallHTTPPostJSON(w goHTTP.ResponseWriter, req *goHTTP.Request) {
 	if req.Method != goHTTP.MethodPost {
 		goHTTP.NotFound(w, req)
 		return
 	}
 
-	body := Body{}
+	body := struct {
+		Title  string `json:"title"`
+		UserID int    `json:"userId"`
+	}{}
 	err := json.NewDecoder(req.Body).Decode(&body)
 	if err != nil {
 		goHTTP.Error(w, err.Error(), goHTTP.StatusBadRequest)
 		return
 	}
 
-	if body.Title != title || body.UserID != userId {
+	if body.Title != "some title" || body.UserID != 1 {
 		goHTTP.Error(w, "invalid body sent", goHTTP.StatusBadRequest)
 		return
 	}
@@ -63,18 +57,57 @@ func handlerCallHTTPPost(w goHTTP.ResponseWriter, req *goHTTP.Request) {
 		return
 	}
 
-	resp, err := json.Marshal(body)
+	w.WriteHeader(goHTTP.StatusCreated)
+	w.Write([]byte(`{
+		"title": "some title",
+		"description": "some description",
+		"userId": 1,
+		"comments": [
+			{ "id": 1, "text": "foo" },
+			{ "id": 2, "text": "bar" }
+		]
+	}`))
+}
+
+func handlerCallHTTPPost(w goHTTP.ResponseWriter, req *goHTTP.Request) {
+	if req.Method != goHTTP.MethodPost {
+		goHTTP.NotFound(w, req)
+		return
+	}
+
+	reqBody, err := io.ReadAll(req.Body)
+	if err != nil {
+		goHTTP.Error(w, "failed to read request body", goHTTP.StatusBadRequest)
+		return
+	}
+
+	expected := `
+	hello
+	world
+	`
+
+	if expected != string(reqBody) {
+		goHTTP.Error(w, "invalid body sent", goHTTP.StatusBadRequest)
+		return
+	}
+
+	_, err = goHTTP.Post("https://jsonplaceholder.typicode.com/posts", "application/json", req.Body)
 	if err != nil {
 		goHTTP.Error(w, err.Error(), goHTTP.StatusInternalServerError)
 		return
 	}
 
+	respBody := `
+	foo
+	 bar`
+
 	w.WriteHeader(goHTTP.StatusCreated)
-	w.Write(resp)
+	w.Write([]byte(respBody))
 }
 
 func init() {
 	goHTTP.HandleFunc("/handlerCallHTTPGet", handlerCallHTTPGet)
+	goHTTP.HandleFunc("/handlerCallHTTPPostJSON", handlerCallHTTPPostJSON)
 	goHTTP.HandleFunc("/handlerCallHTTPPost", handlerCallHTTPPost)
 
 	db, err := connectToDatabase()
@@ -88,23 +121,60 @@ func init() {
 	go goHTTP.ListenAndServe(":8080", nil)
 }
 
-func TestHandlerCallHTTPPost_Success(t *testing.T) {
+func TestHandlerCallHTTPPostJSON_Success(t *testing.T) {
 	err := Test(TestCase{
-		Description: "TestHandlerCallHTTPPost_Success",
+		Description: "TesthandlerCallHTTPPostJSON_Success",
 		Request: call.Request{
-			URL:    "http://localhost:8080/handlerCallHTTPPost",
+			URL:    "http://localhost:8080/handlerCallHTTPPostJSON",
 			Method: goHTTP.MethodPost,
-			Body: fmt.Sprintf(`{
-				"title": "%s",
-				"userId": %d
-			}`, title, userId),
+			Body: `{
+				"title": "some title",
+				"userId": 1
+			}`,
 		},
 		Response: expect.Response{
 			StatusCode: goHTTP.StatusCreated,
-			Body: fmt.Sprintf(`{
-				"title":"%s",
-				"userId":%d
-			}`, title, userId),
+			Body: `{
+				"title": "some title",
+				"description": "<<PRESENCE>>",
+				"userId": 1,
+				"comments": [
+					{ "id": 1, "text": "foo" },
+					{ "id": 2, "text": "bar" }
+				]
+			}`,
+		},
+		Assertions: []assertion.Assertion{
+			&assertion.HTTP{
+				Request: expect.Request{
+					URL:    "https://jsonplaceholder.typicode.com/posts",
+					Method: goHTTP.MethodPost,
+				},
+			},
+		},
+	})
+
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestHandlerCallHTTPPost_Success(t *testing.T) {
+	err := Test(TestCase{
+		Description: "TesthandlerCallHTTPPost_Success",
+		Request: call.Request{
+			URL:    "http://localhost:8080/handlerCallHTTPPost",
+			Method: goHTTP.MethodPost,
+			Body: `
+	hello
+	world
+	`,
+		},
+		Response: expect.Response{
+			StatusCode: goHTTP.StatusCreated,
+			Body: `
+	foo
+	 bar`,
 		},
 		Assertions: []assertion.Assertion{
 			&assertion.HTTP{

@@ -15,10 +15,6 @@ type Request struct {
 	// A multiline string is valid.
 	// eg: { "foo": "bar" }
 	Body string
-	// IgnoreBodyFields is used to ignore the assertion of some of the body field
-	// The syntax used to ignore fields can be found here: https://github.com/tidwall/sjson
-	// eg: ["data.transaction_id", "id"]
-	IgnoreBodyFields []string
 }
 
 // Response is used to validate if a HTTP response was returned with the correct parameters
@@ -27,10 +23,6 @@ type Response struct {
 	StatusCode int
 	// Body expected in the HTTP response
 	Body string
-	// IgnoreBodyFields is used to ignore the assertion of some of the body field
-	// The syntax used to ignore fields can be found here: https://github.com/tidwall/sjson
-	// eg: ["data.transaction_id", "id"]
-	IgnoreBodyFields []string
 	// Header expected in the HTTP response.
 	// Every header set in here will be asserted, others will be ignored.
 	// eg: content-type=application/json

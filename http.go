@@ -7,12 +7,12 @@ import (
 	"net/http"
 
 	"github.com/jarcoal/httpmock"
+	"github.com/kinbiko/jsonassert"
 	"github.com/lucasvmiguel/integration/assertion"
 	"github.com/lucasvmiguel/integration/call"
 	"github.com/lucasvmiguel/integration/expect"
 	"github.com/lucasvmiguel/integration/internal/utils"
 	"github.com/pkg/errors"
-	"github.com/tidwall/sjson"
 )
 
 // TestCase describes a test case that will run
@@ -77,22 +77,22 @@ func assertResponse(expected expect.Response, resp *http.Response) error {
 		return errors.Wrap(err, "failed to read response body")
 	}
 
-	respBodyString := utils.Trim(string(respBody))
-	expectedRespBody := utils.Trim(expected.Body)
+	respBodyString := string(respBody)
 
 	if resp.StatusCode != expected.StatusCode {
 		return errors.Errorf("response status code should be %d it got %d", expected.StatusCode, resp.StatusCode)
 	}
 
-	for _, field := range expected.IgnoreBodyFields {
-		respBodyString, err = sjson.Delete(respBodyString, field)
-		if err != nil {
-			return errors.Errorf("failed to ignore field: %s", field)
+	if utils.IsJSON(expected.Body) {
+		je := utils.JsonError{}
+		jsonassert.New(&je).Assertf(respBodyString, expected.Body)
+		if je.Err != nil {
+			return errors.Errorf("response body is a JSON. response body does not match: %v", je.Err.Error())
 		}
-	}
-
-	if respBodyString != expectedRespBody {
-		return errors.Errorf("response body should be '%s' it got '%s'", expectedRespBody, respBodyString)
+	} else {
+		if respBodyString != expected.Body {
+			return errors.Errorf("response body is a regular string. response body should be '%s' it got '%s'", expected.Body, respBodyString)
+		}
 	}
 
 	for key, values := range expected.Header {
@@ -107,12 +107,12 @@ func assertResponse(expected expect.Response, resp *http.Response) error {
 
 func createHTTPRequest(testCase TestCase) (*http.Request, error) {
 	var reqBody io.Reader
-	reqBodyString := utils.Trim(testCase.Request.Body)
+	reqBodyString := testCase.Request.Body
 
 	if reqBodyString == "" {
 		reqBody = nil
 	} else {
-		reqBody = bytes.NewBufferString(reqBodyString)
+		reqBody = bytes.NewBufferString(testCase.Request.Body)
 	}
 
 	req, err := http.NewRequest(testCase.Request.Method, testCase.Request.URL, reqBody)

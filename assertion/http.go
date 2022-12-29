@@ -5,13 +5,13 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/kinbiko/jsonassert"
 	"github.com/lucasvmiguel/integration/expect"
 	"github.com/lucasvmiguel/integration/internal/utils"
 	"github.com/lucasvmiguel/integration/mock"
 
 	"github.com/jarcoal/httpmock"
 	"github.com/pkg/errors"
-	"github.com/tidwall/sjson"
 )
 
 // HTTP asserts a http request
@@ -33,18 +33,18 @@ func (a *HTTP) Setup() error {
 					return nil, errors.Wrap(err, fmt.Sprintf("%s: failed to read request body", a.Request.URL))
 				}
 
-				reqBodyString := utils.Trim(string(reqBody))
-				expectedReqBody := utils.Trim(a.Request.Body)
+				reqBodyString := string(reqBody)
 
-				for _, field := range a.Request.IgnoreBodyFields {
-					reqBodyString, err = sjson.Delete(reqBodyString, field)
-					if err != nil {
-						return nil, errors.Errorf("%s: failed to ignore field: %s", a.Request.URL, field)
+				if utils.IsJSON(a.Request.Body) {
+					je := utils.JsonError{}
+					jsonassert.New(&je).Assertf(reqBodyString, a.Request.Body)
+					if je.Err != nil {
+						return nil, errors.Errorf("response body is a JSON. response body does not match: %v", je.Err.Error())
 					}
-				}
-
-				if reqBodyString != expectedReqBody {
-					return nil, errors.Errorf("%s: request body should be %s it got %s", a.Request.URL, expectedReqBody, reqBodyString)
+				} else {
+					if reqBodyString != a.Request.Body {
+						return nil, errors.Errorf("response body is a regular string. response body should be '%s' it got '%s'", a.Request.Body, reqBodyString)
+					}
 				}
 			}
 
@@ -60,7 +60,10 @@ func (a *HTTP) Setup() error {
 				statusCode = http.StatusOK
 			}
 
-			return httpmock.NewStringResponse(statusCode, utils.Trim(a.Response.Body)), nil
+			if utils.IsJSON(a.Response.Body) {
+				return httpmock.NewStringResponse(statusCode, utils.Trim(a.Response.Body)), nil
+			}
+			return httpmock.NewStringResponse(statusCode, a.Response.Body), nil
 		},
 	)
 
