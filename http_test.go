@@ -122,7 +122,7 @@ func init() {
 }
 
 func TestHandlerCallHTTPPostJSON_Success(t *testing.T) {
-	err := Test(HTTPTestCase{
+	err := Test(&HTTPTestCase{
 		Description: "TesthandlerCallHTTPPostJSON_Success",
 		Request: call.Request{
 			URL:    "http://localhost:8080/handlerCallHTTPPostJSON",
@@ -160,7 +160,7 @@ func TestHandlerCallHTTPPostJSON_Success(t *testing.T) {
 }
 
 func TestHandlerCallHTTPPost_Success(t *testing.T) {
-	err := Test(HTTPTestCase{
+	err := Test(&HTTPTestCase{
 		Description: "TesthandlerCallHTTPPost_Success",
 		Request: call.Request{
 			URL:    "http://localhost:8080/handlerCallHTTPPost",
@@ -193,7 +193,7 @@ func TestHandlerCallHTTPPost_Success(t *testing.T) {
 
 func TestHandlerCallHTTPGet_Success(t *testing.T) {
 
-	err := Test(HTTPTestCase{
+	err := Test(&HTTPTestCase{
 		Description: "TestHandlerCallHTTPGet_Success",
 		Request: call.Request{
 			URL:    "http://localhost:8080/handlerCallHTTPGet",
@@ -220,7 +220,7 @@ func TestHandlerCallHTTPGet_Success(t *testing.T) {
 
 func TestHandlerCallHTTPGet_SuccessWithSQL(t *testing.T) {
 	db, _ := connectToDatabase()
-	err := Test(HTTPTestCase{
+	err := Test(&HTTPTestCase{
 		Description: "TestHandlerCallHTTPGet_SuccessWithSQL",
 		Request: call.Request{
 			URL:    "http://localhost:8080/handlerCallHTTPGet",
@@ -258,7 +258,7 @@ func TestHandlerCallHTTPGet_SuccessWithSQL(t *testing.T) {
 }
 
 func TestHandlerCallHTTPGet_FailedMethod(t *testing.T) {
-	err := Test(HTTPTestCase{
+	err := Test(&HTTPTestCase{
 		Description: "TestHandlerCallHTTPGet_FailedMethod",
 		Request: call.Request{
 			URL:    "http://localhost:8080/handlerCallHTTPGet",
@@ -284,7 +284,7 @@ func TestHandlerCallHTTPGet_FailedMethod(t *testing.T) {
 }
 
 func TestHandlerCallHTTPGet_FailedURL(t *testing.T) {
-	err := Test(HTTPTestCase{
+	err := Test(&HTTPTestCase{
 		Description: "TestHandlerCallHTTPGet_FailedURL",
 		Request: call.Request{
 			URL:    "http://localhost:8080/invalid",
@@ -310,7 +310,7 @@ func TestHandlerCallHTTPGet_FailedURL(t *testing.T) {
 }
 
 func TestHandlerCallHTTPGet_WrongStatus(t *testing.T) {
-	err := Test(HTTPTestCase{
+	err := Test(&HTTPTestCase{
 		Description: "TestHandlerCallHTTPGet_WrongStatus",
 		Request: call.Request{
 			URL:    "http://localhost:8080/handlerCallHTTPGet",
@@ -336,7 +336,7 @@ func TestHandlerCallHTTPGet_WrongStatus(t *testing.T) {
 }
 
 func TestHandlerCallHTTPGet_WrongResponseBody(t *testing.T) {
-	err := Test(HTTPTestCase{
+	err := Test(&HTTPTestCase{
 		Description: "TestHandlerCallHTTPGet_WrongResponseBody",
 		Request: call.Request{
 			URL:    "http://localhost:8080/handlerCallHTTPGet",
@@ -362,7 +362,7 @@ func TestHandlerCallHTTPGet_WrongResponseBody(t *testing.T) {
 }
 
 func TestHandlerCallHTTPGet_InvalidHTTPAssertion(t *testing.T) {
-	err := Test(HTTPTestCase{
+	err := Test(&HTTPTestCase{
 		Description: "TestHandlerCallHTTPGet_InvalidAssertionHTTP",
 		Request: call.Request{
 			URL:    "http://localhost:8080/handlerCallHTTPGet",
@@ -389,7 +389,7 @@ func TestHandlerCallHTTPGet_InvalidHTTPAssertion(t *testing.T) {
 
 func TestHandlerCallHTTPGet_InvalidSQL(t *testing.T) {
 	db, _ := connectToDatabase()
-	err := Test(HTTPTestCase{
+	err := Test(&HTTPTestCase{
 		Description: "TestHandlerCallHTTPGet_Success",
 		Request: call.Request{
 			URL:    "http://localhost:8080/handlerCallHTTPGet",

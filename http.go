@@ -31,45 +31,40 @@ type HTTPTestCase struct {
 	Assertions []assertion.Assertion
 }
 
-// Test runs a test case
-func httpTest(testCase HTTPTestCase) error {
+// Test runs an HTTP test case
+func (t *HTTPTestCase) Test() error {
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
-	httpmock.RegisterResponder(testCase.Request.Method, testCase.Request.URL, httpmock.InitialTransport.RoundTrip)
+	httpmock.RegisterResponder(t.Request.Method, t.Request.URL, httpmock.InitialTransport.RoundTrip)
 
-	for _, assertion := range testCase.Assertions {
+	for _, assertion := range t.Assertions {
 		err := assertion.Setup()
 		if err != nil {
-			return errors.New(errString(err, testCase.Description, "failed to setup assertion"))
+			return errors.New(errString(err, t.Description, "failed to setup assertion"))
 		}
 	}
 
-	req, err := createHTTPRequest(testCase)
+	resp, err := t.call()
 	if err != nil {
-		return errors.New(errString(err, testCase.Description, "failed to create HTTP request"))
+		return errors.New(errString(err, t.Description, "failed to call HTTP endpoint"))
 	}
 
-	resp, err := callHTTP(req)
+	err = t.assert(resp)
 	if err != nil {
-		return errors.New(errString(err, testCase.Description, "failed to call HTTP endpoint"))
+		return errors.New(errString(err, t.Description, "failed to assert HTTP response"))
 	}
 
-	err = assertHTTPResponse(testCase.Response, resp)
-	if err != nil {
-		return errors.New(errString(err, testCase.Description, "failed to assert HTTP response"))
-	}
-
-	for _, assertion := range testCase.Assertions {
+	for _, assertion := range t.Assertions {
 		err := assertion.Assert()
 		if err != nil {
-			return errors.New(errString(err, testCase.Description, "failed to assert"))
+			return errors.New(errString(err, t.Description, "failed to assert"))
 		}
 	}
 
 	return nil
 }
 
-func assertHTTPResponse(expected expect.Response, resp *http.Response) error {
+func (t *HTTPTestCase) assert(resp *http.Response) error {
 	defer resp.Body.Close()
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -78,23 +73,23 @@ func assertHTTPResponse(expected expect.Response, resp *http.Response) error {
 
 	respBodyString := string(respBody)
 
-	if resp.StatusCode != expected.StatusCode {
-		return errors.Errorf("response status code should be %d it got %d", expected.StatusCode, resp.StatusCode)
+	if resp.StatusCode != t.Response.StatusCode {
+		return errors.Errorf("response status code should be %d it got %d", t.Response.StatusCode, resp.StatusCode)
 	}
 
-	if utils.IsJSON(expected.Body) {
+	if utils.IsJSON(t.Response.Body) {
 		je := utils.JsonError{}
-		jsonassert.New(&je).Assertf(respBodyString, expected.Body)
+		jsonassert.New(&je).Assertf(respBodyString, t.Response.Body)
 		if je.Err != nil {
 			return errors.Errorf("response body is a JSON. response body does not match: %v", je.Err.Error())
 		}
 	} else {
-		if respBodyString != expected.Body {
-			return errors.Errorf("response body is a regular string. response body should be '%s' it got '%s'", expected.Body, respBodyString)
+		if respBodyString != t.Response.Body {
+			return errors.Errorf("response body is a regular string. response body should be '%s' it got '%s'", t.Response.Body, respBodyString)
 		}
 	}
 
-	for key, values := range expected.Header {
+	for key, values := range t.Response.Header {
 		respHeader := resp.Header.Get(key)
 		if respHeader != values[0] {
 			return errors.Errorf("response header should be '%s' it got '%s'", values[0], respHeader)
@@ -104,30 +99,35 @@ func assertHTTPResponse(expected expect.Response, resp *http.Response) error {
 	return nil
 }
 
-func createHTTPRequest(testCase HTTPTestCase) (*http.Request, error) {
-	var reqBody io.Reader
-	reqBodyString := testCase.Request.Body
-
-	if reqBodyString == "" {
-		reqBody = nil
-	} else {
-		reqBody = bytes.NewBufferString(testCase.Request.Body)
-	}
-
-	req, err := http.NewRequest(testCase.Request.Method, testCase.Request.URL, reqBody)
+func (t *HTTPTestCase) call() (*http.Response, error) {
+	req, err := t.createHTTPRequest()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create a new http request")
+		return nil, errors.Wrap(err, "failed to create http request")
 	}
-	req.Header = testCase.Request.Header
 
-	return req, nil
-}
-
-func callHTTP(req *http.Request) (*http.Response, error) {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to call endpoint")
 	}
 	return resp, nil
+}
+
+func (t *HTTPTestCase) createHTTPRequest() (*http.Request, error) {
+	var reqBody io.Reader
+	reqBodyString := t.Request.Body
+
+	if reqBodyString == "" {
+		reqBody = nil
+	} else {
+		reqBody = bytes.NewBufferString(t.Request.Body)
+	}
+
+	req, err := http.NewRequest(t.Request.Method, t.Request.URL, reqBody)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create a new http request")
+	}
+	req.Header = t.Request.Header
+
+	return req, nil
 }

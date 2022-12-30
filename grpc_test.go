@@ -66,7 +66,7 @@ func TestGRPC_Successfully(t *testing.T) {
 		t.Fatal(c)
 	}
 
-	err = Test(GRPCTestCase{
+	err = Test(&GRPCTestCase{
 		Description: "TestGRPC_Successfully",
 		Call: call.Call{
 			ServiceClient: c,
@@ -105,7 +105,7 @@ func TestGRPC_Error(t *testing.T) {
 		t.Fatal(c)
 	}
 
-	err = Test(GRPCTestCase{
+	err = Test(&GRPCTestCase{
 		Description: "TestGRPC_Successfully",
 		Call: call.Call{
 			ServiceClient: c,
@@ -128,7 +128,7 @@ func TestGRPC_InvalidFunction(t *testing.T) {
 		t.Fatal(c)
 	}
 
-	err = Test(GRPCTestCase{
+	err = Test(&GRPCTestCase{
 		Description: "TestGRPC_Successfully",
 		Call: call.Call{
 			ServiceClient: c,
@@ -143,7 +143,7 @@ func TestGRPC_InvalidFunction(t *testing.T) {
 }
 
 func TestGRPC_NilClient(t *testing.T) {
-	err := Test(GRPCTestCase{
+	err := Test(&GRPCTestCase{
 		Description: "TestGRPC_Successfully",
 		Call: call.Call{
 			ServiceClient: nil,

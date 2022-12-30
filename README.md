@@ -39,7 +39,7 @@ func init() {
 }
 
 func TestPingEndpoint(t *testing.T) {
-	err := integration.Test(integration.HTTPTestCase{
+	err := integration.Test(&integration.HTTPTestCase{
 		Description: "Testing ping endpoint",
 		Request: call.Request{
 			URL:    "http://localhost:8080/ping",
@@ -110,7 +110,7 @@ type Response struct {
 You can also ignore request body field assertion adding the annotation `<<PRESENSE>>`. Check the example below:
 
 ```go
-integration.HTTPTestCase{
+&integration.HTTPTestCase{
 	Description: "Test Ignored field",
 	Request: call.Request{
 		URL:    "http://localhost:8080/test",
@@ -185,7 +185,7 @@ SQL assertion checks if an SQL query returns an expected result. See below how t
 func TestEndpoint(t *testing.T) {
 	db, _ := connectToDatabase()
 	
-	err := integration.Test(integration.HTTPTestCase{
+	err := integration.Test(&integration.HTTPTestCase{
 		Description: "Test Endpoint",
 		Request: call.Request{
 			URL:    "http://localhost:8080/test",
@@ -257,7 +257,7 @@ See below how to use it:
 
 ```go
 func TestEndpoint(t *testing.T) {
-	err := integration.Test(integration.HTTPTestCase{
+	err := integration.Test(&integration.HTTPTestCase{
 		Description: "Test Endpoint",
 		Request: call.Request{
 			URL:    "http://localhost:8080/test",

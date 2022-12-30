@@ -6,15 +6,14 @@ import (
 	"github.com/pkg/errors"
 )
 
-func Test(x interface{}) error {
-	switch v := x.(type) {
-	case HTTPTestCase:
-		return httpTest(v)
-	case GRPCTestCase:
-		return grpcTest(v)
-	default:
-		return errors.New("Test function accepts only `GRPCTestCase` or `HTTPTestCase at the moment`")
-	}
+// Tester allows to test a case
+type Tester interface {
+	Test() error
+}
+
+// Test runs a test case
+func Test(tester Tester) error {
+	return tester.Test()
 }
 
 func errString(err error, description string, message string) string {
