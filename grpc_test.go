@@ -38,7 +38,11 @@ func (s *Server) SayHello(ctx context.Context, in *chat.Message) (*chat.Message,
 		return nil, errors.Wrap(err, "failed to call endpoint")
 	}
 
-	return &chat.Message{Body: "Hello From the Server!"}, nil
+	return &chat.Message{
+		Id:      1,
+		Body:    "Hello From the Server!",
+		Comment: "test",
+	}, nil
 }
 
 func init() {
@@ -65,12 +69,20 @@ func TestGRPC_Successfully(t *testing.T) {
 	err = Test(GRPCTestCase{
 		Description: "TestGRPC_Successfully",
 		Call: call.Call{
-			Client:   c,
-			Function: "SayHello",
-			Argument: &chat.Message{Body: "Hello From Client!"},
+			ServiceClient: c,
+			Function:      "SayHello",
+			Message: &chat.Message{
+				Id:      1,
+				Body:    "Hello From Client!",
+				Comment: "Whatever",
+			},
 		},
 		Output: expect.Output{
-			Response: &chat.Message{Body: "Hello From the Server!"},
+			Message: &chat.Message{
+				Id:      1,
+				Body:    "Hello From the Server!",
+				Comment: "<<PRESENCE>>",
+			},
 		},
 		Assertions: []assertion.Assertion{
 			&assertion.HTTP{
@@ -96,9 +108,9 @@ func TestGRPC_Error(t *testing.T) {
 	err = Test(GRPCTestCase{
 		Description: "TestGRPC_Successfully",
 		Call: call.Call{
-			Client:   c,
-			Function: "SayHello",
-			Argument: &chat.Message{Body: errMessage},
+			ServiceClient: c,
+			Function:      "SayHello",
+			Message:       &chat.Message{Body: errMessage},
 		},
 		Output: expect.Output{
 			Err: status.New(codes.Unavailable, errMessage),
@@ -107,6 +119,41 @@ func TestGRPC_Error(t *testing.T) {
 
 	if err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestGRPC_InvalidFunction(t *testing.T) {
+	c, err := client()
+	if err != nil {
+		t.Fatal(c)
+	}
+
+	err = Test(GRPCTestCase{
+		Description: "TestGRPC_Successfully",
+		Call: call.Call{
+			ServiceClient: c,
+			Function:      "Invalid",
+			Message:       &chat.Message{Body: errMessage},
+		},
+	})
+
+	if err == nil {
+		t.Fatal("err should not be nil")
+	}
+}
+
+func TestGRPC_NilClient(t *testing.T) {
+	err := Test(GRPCTestCase{
+		Description: "TestGRPC_Successfully",
+		Call: call.Call{
+			ServiceClient: nil,
+			Function:      "SayHello",
+			Message:       &chat.Message{Body: errMessage},
+		},
+	})
+
+	if err == nil {
+		t.Fatal("err should not be nil")
 	}
 }
 

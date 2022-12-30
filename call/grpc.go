@@ -2,14 +2,15 @@ package call
 
 // Call sets up how a GRPC request will be called
 type Call struct {
-	// GRPC client used to call the server
+	// GRPC service client used to call the server
 	// eg: ChatServiceClient
-	Client interface{}
+	ServiceClient interface{}
 
 	// Function that will be called on the request
 	// eg: SayHello
 	Function string
 
-	// Arguments that will be sent with the request
-	Argument interface{}
+	// Message that will be sent with the request
+	// Eg: &chat.Message{Id: 1, Body: "Hello From the Server!"}
+	Message interface{}
 }

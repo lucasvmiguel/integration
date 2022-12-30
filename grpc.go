@@ -2,13 +2,16 @@ package integration
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"reflect"
 
 	"github.com/jarcoal/httpmock"
+	"github.com/kinbiko/jsonassert"
 	"github.com/lucasvmiguel/integration/assertion"
 	"github.com/lucasvmiguel/integration/call"
 	"github.com/lucasvmiguel/integration/expect"
+	"github.com/lucasvmiguel/integration/internal/utils"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/status"
 )
@@ -40,9 +43,17 @@ func grpcTest(testCase GRPCTestCase) error {
 		}
 	}
 
-	args := []reflect.Value{reflect.ValueOf(context.Background()), reflect.ValueOf(testCase.Call.Argument)}
-	resp := reflect.ValueOf(testCase.Call.Client).MethodByName(testCase.Call.Function).Call(args)
+	if testCase.Call.ServiceClient == nil {
+		return errors.New(fmt.Sprintf("%s: failed because grpc client is nil", testCase.Description))
+	}
 
+	args := []reflect.Value{reflect.ValueOf(context.Background()), reflect.ValueOf(testCase.Call.Message)}
+	function := reflect.ValueOf(testCase.Call.ServiceClient).MethodByName(testCase.Call.Function)
+	if !function.IsValid() {
+		return errors.New(fmt.Sprintf("%s: failed because frpc function is not valid", testCase.Description))
+	}
+
+	resp := function.Call(args)
 	err := assertGRPCResponse(testCase.Output, resp)
 	if err != nil {
 		return errors.New(errString(err, testCase.Description, "failed to assert GRPC response"))
@@ -59,12 +70,22 @@ func grpcTest(testCase GRPCTestCase) error {
 }
 
 func assertGRPCResponse(expected expect.Output, resp []reflect.Value) error {
-	respValue := fmt.Sprintf("%v", resp[0])
 	respErr, _ := resp[1].Interface().(error)
-	expectedRespValue := fmt.Sprintf("%v", expected.Response)
 
-	if respValue != expectedRespValue {
-		return errors.Errorf("output response should be %v it got %v", expectedRespValue, respValue)
+	respValueJSON, err := json.Marshal(resp[0].Interface())
+	if err != nil {
+		return errors.Wrap(err, "failed to marshal grpc response to json")
+	}
+
+	expectedValueJSON, err := json.Marshal(expected.Message)
+	if err != nil {
+		return errors.Wrap(err, "failed to marshal grpc expected response to json")
+	}
+
+	je := utils.JsonError{}
+	jsonassert.New(&je).Assertf(string(respValueJSON), string(expectedValueJSON))
+	if je.Err != nil {
+		return errors.Errorf(" body does not match: %v", je.Err.Error())
 	}
 
 	if respErr == nil && expected.Err == nil {

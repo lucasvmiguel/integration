@@ -107,6 +107,8 @@ type Response struct {
 }
 ```
 
+You can also ignore request body field assertion adding the annotation `<<PRESENSE>>`
+
 ### GRPC
 
 You can also run an `GRPC` integration test, see an example [here](grpc_test.go)
@@ -118,18 +120,18 @@ An GRPC call will be sent to the your server depending on how it's configure the
 ```go
 // Call sets up how a GRPC request will be called
 type Call struct {
-	// GRPC client used to call the server
+	// GRPC service client used to call the server
 	// eg: ChatServiceClient
-	Client interface{}
+	ServiceClient interface{}
 
 	// Function that will be called on the request
 	// eg: SayHello
 	Function string
 
-	// Arguments that will be sent with the request
-	Argument interface{}
+	// Message that will be sent with the request
+	// Eg: &chat.Message{Id: 1, Body: "Hello From the Server!"}
+	Message interface{}
 }
-
 ```
 
 #### Output
@@ -139,12 +141,17 @@ An GRPC output will be expected from your server depending on how it's configure
 ```go
 // Output is used to validate if a GRPC response was returned with the correct parameters
 type Output struct {
-	// Response expected in the GRPC response
-	Response interface{}
+	// Message expected in the GRPC response
+	// Eg: &chat.Message{Id: 1, Body: "Hello From the Server!", Comment: "<<PRESENCE>>"}
+	Message interface{}
+
 	// Error expected in the GRPC response
+	// Eg: status.New(codes.Unavailable, "error message"),
 	Err *status.Status
 }
 ```
+
+You can also ignore request body field assertion adding the annotation `<<PRESENSE>>`
 
 ### Assertions
 
@@ -293,7 +300,7 @@ type Request struct {
 }
 ```
 
-You can also ignore request body field assertion adding the annotation `<<PRESENSE>>` 
+You can also ignore request body field assertion adding the annotation `<<PRESENSE>>`
 
 ```go
 // Response is used to return a mocked response
