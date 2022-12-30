@@ -2,7 +2,6 @@ package integration
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"net/http"
 
@@ -15,8 +14,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-// TestCase describes a test case that will run
-type TestCase struct {
+// HTTPTestCase describes a HTTP test case that will run
+type HTTPTestCase struct {
 	// Description describes a test case
 	// It can be really useful to understand which tests are breaking
 	Description string
@@ -33,7 +32,7 @@ type TestCase struct {
 }
 
 // Test runs a test case
-func Test(testCase TestCase) error {
+func httpTest(testCase HTTPTestCase) error {
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
 	httpmock.RegisterResponder(testCase.Request.Method, testCase.Request.URL, httpmock.InitialTransport.RoundTrip)
@@ -41,36 +40,36 @@ func Test(testCase TestCase) error {
 	for _, assertion := range testCase.Assertions {
 		err := assertion.Setup()
 		if err != nil {
-			return errors.New(errString(err, testCase, "failed to setup assertion"))
+			return errors.New(errString(err, testCase.Description, "failed to setup assertion"))
 		}
 	}
 
 	req, err := createHTTPRequest(testCase)
 	if err != nil {
-		return errors.New(errString(err, testCase, "failed to create HTTP request"))
+		return errors.New(errString(err, testCase.Description, "failed to create HTTP request"))
 	}
 
 	resp, err := callHTTP(req)
 	if err != nil {
-		return errors.New(errString(err, testCase, "failed to call HTTP endpoint"))
+		return errors.New(errString(err, testCase.Description, "failed to call HTTP endpoint"))
 	}
 
-	err = assertResponse(testCase.Response, resp)
+	err = assertHTTPResponse(testCase.Response, resp)
 	if err != nil {
-		return errors.New(errString(err, testCase, "failed to assert HTTP response"))
+		return errors.New(errString(err, testCase.Description, "failed to assert HTTP response"))
 	}
 
 	for _, assertion := range testCase.Assertions {
 		err := assertion.Assert()
 		if err != nil {
-			return errors.New(errString(err, testCase, "failed to assert"))
+			return errors.New(errString(err, testCase.Description, "failed to assert"))
 		}
 	}
 
 	return nil
 }
 
-func assertResponse(expected expect.Response, resp *http.Response) error {
+func assertHTTPResponse(expected expect.Response, resp *http.Response) error {
 	defer resp.Body.Close()
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -105,7 +104,7 @@ func assertResponse(expected expect.Response, resp *http.Response) error {
 	return nil
 }
 
-func createHTTPRequest(testCase TestCase) (*http.Request, error) {
+func createHTTPRequest(testCase HTTPTestCase) (*http.Request, error) {
 	var reqBody io.Reader
 	reqBodyString := testCase.Request.Body
 
@@ -131,8 +130,4 @@ func callHTTP(req *http.Request) (*http.Response, error) {
 		return nil, errors.Wrap(err, "failed to call endpoint")
 	}
 	return resp, nil
-}
-
-func errString(err error, testCase TestCase, message string) string {
-	return errors.Wrap(err, fmt.Sprintf("%s: %s", testCase.Description, message)).Error()
 }
