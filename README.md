@@ -4,7 +4,7 @@
 [![run tests](https://github.com/lucasvmiguel/integration/actions/workflows/test.yml/badge.svg)](https://github.com/lucasvmiguel/integration/actions/workflows/test.yml)
 <a href="https://godoc.org/github.com/lucasvmiguel/integration"><img src="https://img.shields.io/badge/api-reference-blue.svg?style=flat-square" alt="GoDoc"></a>
 
-Integration is a Golang tool to run integration tests. Currently, this library only supports an HTTP request and response model.
+Integration is a Golang tool to run integration tests. Currently, this library supports regular `HTTP` and `GRPC`.
 
 ## Install
 
@@ -39,7 +39,7 @@ func init() {
 }
 
 func TestPingEndpoint(t *testing.T) {
-	err := integration.Test(integration.TestCase{
+	err := integration.Test(&integration.HTTPTestCase{
 		Description: "Testing ping endpoint",
 		Request: call.Request{
 			URL:    "http://localhost:8080/ping",
@@ -57,15 +57,18 @@ func TestPingEndpoint(t *testing.T) {
 }
 ```
 
-Note: The http server must be started together with the tests
+
+**Note: The http/grpc server must be started together with the tests**
 
 ## How to use
 
 See how to use different aspects of the library below.
 
-### Request
+### HTTP
 
-An HTTP request will be sent to the your server depending on how it's configure the `Request` property on the `TestCase`. `Request` has many different fields to be configured, see them below:
+#### Request
+
+An HTTP request will be sent to the your server depending on how it's configure the `Request` property on the `HTTPTestCase`. `Request` has many different fields to be configured, see them below:
 
 ```go
 // Request sets up how a HTTP request will be called
@@ -86,9 +89,9 @@ type Request struct {
 }
 ```
 
-### Response
+#### Response
 
-An HTTP response will be expected from your server depending on how it's configure the `Response` property on the `TestCase`. If your endpoints sends a different response, the `Test` function will return an `error`. `Response` has many different fields to be configured, see them below:
+An HTTP response will be expected from your server depending on how it's configure the `Response` property on the `HTTPTestCase`. If your endpoints sends a different response, the `Test` function will return an `error`. `Response` has many different fields to be configured, see them below:
 
 ```go
 // Response is used to validate if a HTTP response was returned with the correct parameters
@@ -104,9 +107,10 @@ type Response struct {
 }
 ```
 
-You can ignore response body field assertion adding the `<<PRESENSE>>` annotation, check the following example
+You can also ignore request body field assertion adding the annotation `<<PRESENSE>>`. Check the example below:
+
 ```go
-integration.TestCase{
+&integration.HTTPTestCase{
 	Description: "Test Ignored field",
 	Request: call.Request{
 		URL:    "http://localhost:8080/test",
@@ -121,11 +125,57 @@ integration.TestCase{
 	},
 }
 ```
+
 Reference: https://github.com/kinbiko/jsonassert
+
+### GRPC
+
+You can also run an `GRPC` integration test, see an example [here](grpc_test.go)
+
+#### Call
+
+An GRPC call will be sent to the your server depending on how it's configure the `Call` property on the `GRPCTestCase`. `Call` has many different fields to be configured, see them below:
+
+```go
+// Call sets up how a GRPC request will be called
+type Call struct {
+	// GRPC service client used to call the server
+	// eg: ChatServiceClient
+	ServiceClient interface{}
+
+	// Function that will be called on the request
+	// eg: SayHello
+	Function string
+
+	// Message that will be sent with the request
+	// Eg: &chat.Message{Id: 1, Body: "Hello From the Server!"}
+	Message interface{}
+}
+```
+
+#### Output
+
+An GRPC output will be expected from your server depending on how it's configure the `Output` property on the `GRPCTestCase`. If your endpoints sends a different response, the `Test` function will return an `error`. `Output` has different fields to be configured, see them below:
+
+```go
+// Output is used to validate if a GRPC response was returned with the correct parameters
+type Output struct {
+	// Message expected in the GRPC response
+	// Eg: &chat.Message{Id: 1, Body: "Hello From the Server!", Comment: "<<PRESENCE>>"}
+	Message interface{}
+
+	// Error expected in the GRPC response
+	// Eg: status.New(codes.Unavailable, "error message"),
+	Err *status.Status
+}
+```
+
+You can also ignore request body field assertion adding the annotation `<<PRESENSE>>`.
 
 ### Assertions
 
-There are few different assertion. See them below:
+There are few different assertion that can be made. Assertions work for both regular `HTTP` and `GRPC`.
+See them below:
 
 #### SQL
 
@@ -135,7 +185,7 @@ SQL assertion checks if an SQL query returns an expected result. See below how t
 func TestEndpoint(t *testing.T) {
 	db, _ := connectToDatabase()
 	
-	err := integration.Test(integration.TestCase{
+	err := integration.Test(&integration.HTTPTestCase{
 		Description: "Test Endpoint",
 		Request: call.Request{
 			URL:    "http://localhost:8080/test",
@@ -207,7 +257,7 @@ See below how to use it:
 
 ```go
 func TestEndpoint(t *testing.T) {
-	err := integration.Test(integration.TestCase{
+	err := integration.Test(&integration.HTTPTestCase{
 		Description: "Test Endpoint",
 		Request: call.Request{
 			URL:    "http://localhost:8080/test",
@@ -226,7 +276,8 @@ func TestEndpoint(t *testing.T) {
 				Response: mock.Response{
 					StatusCode: http.StatusOK,
 					Body: `{
-						"message": "success
+						"id": "<<PRESENCE>>",
+						"title": "foo bar"
 					}`,
 				},
 			},
@@ -268,7 +319,7 @@ type Request struct {
 }
 ```
 
-You can also ignore request body field assertion adding the annotation `<<PRESENSE>>` 
+You can also ignore request body field assertion adding the annotation `<<PRESENSE>>`
 
 ```go
 // Response is used to return a mocked response
@@ -298,3 +349,4 @@ It's important to mention that this project contains the following libs:
 - github.com/jarcoal/httpmock
 - github.com/pkg/errors
 - github.com/kinbiko/jsonassert
+- google.golang.org/grpc
