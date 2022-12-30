@@ -57,6 +57,12 @@ func TestPingEndpoint(t *testing.T) {
 }
 ```
 
+### Examples
+
+You can check more examples below:
+- [HTTP](http_test.go)
+- [GRPC](grpc_test.go)
+
 
 **Note: The http/grpc server must be started together with the tests**
 
@@ -91,7 +97,7 @@ type Request struct {
 
 #### Response
 
-An HTTP response will be expected from your server depending on how it's configure the `Response` property on the `HTTPTestCase`. If your endpoints sends a different response, the `Test` function will return an `error`. `Response` has many different fields to be configured, see them below:
+An HTTP response will be expected from your server depending on how it's configure the `Response` property on the `HTTPTestCase`. If your endpoint sends a different response, the `Test` function will return an `error`. `Response` has many different fields to be configured, see them below:
 
 ```go
 // Response is used to validate if a HTTP response was returned with the correct parameters
@@ -130,8 +136,6 @@ Reference: https://github.com/kinbiko/jsonassert
 
 ### GRPC
 
-You can also run an `GRPC` integration test, see an example [here](grpc_test.go)
-
 #### Call
 
 An GRPC call will be sent to the your server depending on how it's configure the `Call` property on the `GRPCTestCase`. `Call` has many different fields to be configured, see them below:
@@ -155,7 +159,7 @@ type Call struct {
 
 #### Output
 
-An GRPC output will be expected from your server depending on how it's configure the `Output` property on the `GRPCTestCase`. If your endpoints sends a different response, the `Test` function will return an `error`. `Output` has different fields to be configured, see them below:
+An GRPC output will be expected from your server depending on how it's configure the `Output` property on the `GRPCTestCase`. If your endpoints send a different response, the `Test` function will return an `error`. `Output` has different fields to be configured, see them below:
 
 ```go
 // Output is used to validate if a GRPC response was returned with the correct parameters
@@ -270,13 +274,18 @@ func TestEndpoint(t *testing.T) {
 		Assertions: []assertion.Assertion{
 			&assertion.HTTP{
 				Request: expect.Request{
-					URL:    "https://jsonplaceholder.typicode.com/posts/1",
-					Method: http.MethodGet,
+					URL:    "https://jsonplaceholder.typicode.com/posts",
+					Method: http.MethodPost,
+					Body: `{
+						"title": "foo",
+						"body": "bar",
+						"userId": "<<PRESENCE>>"
+					}`,
 				},
 				Response: mock.Response{
 					StatusCode: http.StatusOK,
 					Body: `{
-						"id": "<<PRESENCE>>",
+						"id": 1,
 						"title": "foo bar"
 					}`,
 				},
