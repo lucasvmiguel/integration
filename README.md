@@ -107,7 +107,26 @@ type Response struct {
 }
 ```
 
-You can also ignore request body field assertion adding the annotation `<<PRESENSE>>`
+You can also ignore request body field assertion adding the annotation `<<PRESENSE>>`. Check the example below:
+
+```go
+integration.HTTPTestCase{
+	Description: "Test Ignored field",
+	Request: call.Request{
+		URL:    "http://localhost:8080/test",
+		Method: goHTTP.MethodPost
+	},
+	Response: expect.Response{
+		StatusCode: goHTTP.StatusCreated,
+		Body: `{
+			"title": "some title",
+			"code": "<<PRESENCE>>"
+		}`,
+	},
+}
+```
+
+Reference: https://github.com/kinbiko/jsonassert
 
 ### GRPC
 
@@ -151,11 +170,11 @@ type Output struct {
 }
 ```
 
-You can also ignore request body field assertion adding the annotation `<<PRESENSE>>`
+You can also ignore request body field assertion adding the annotation `<<PRESENSE>>`.
 
 ### Assertions
 
-There are few different assertion that can be made. Assertions work for both regulat HTTP and GRPC.
+There are few different assertion that can be made. Assertions work for both regular `HTTP` and `GRPC`.
 See them below:
 
 #### SQL

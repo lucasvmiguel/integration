@@ -44,13 +44,13 @@ func grpcTest(testCase GRPCTestCase) error {
 	}
 
 	if testCase.Call.ServiceClient == nil {
-		return errors.New(fmt.Sprintf("%s: failed because grpc client is nil", testCase.Description))
+		return errors.New(fmt.Sprintf("%s: failed because GRPC client is nil", testCase.Description))
 	}
 
 	args := []reflect.Value{reflect.ValueOf(context.Background()), reflect.ValueOf(testCase.Call.Message)}
 	function := reflect.ValueOf(testCase.Call.ServiceClient).MethodByName(testCase.Call.Function)
 	if !function.IsValid() {
-		return errors.New(fmt.Sprintf("%s: failed because frpc function is not valid", testCase.Description))
+		return errors.New(fmt.Sprintf("%s: failed because GRPC function is not valid", testCase.Description))
 	}
 
 	resp := function.Call(args)

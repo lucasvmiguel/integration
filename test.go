@@ -6,9 +6,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-type TestCase interface{}
-
-func Test(x TestCase) error {
+func Test(x interface{}) error {
 	switch v := x.(type) {
 	case HTTPTestCase:
 		return httpTest(v)
