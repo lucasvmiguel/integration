@@ -14,7 +14,7 @@ const (
 )
 
 // Message sets up how a Websocket message will be sent
-type Message struct {
+type Websocket struct {
 	// URL that will be used to connect to the Websocket server.
 	// eg: my-websocket-server:8080
 	URL string

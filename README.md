@@ -61,10 +61,110 @@ func TestPingEndpoint(t *testing.T) {
 
 You can check more examples below:
 
-- [HTTP](http_test.go)
-- [GRPC](grpc_test.go)
+#### HTTP
 
-**Note: The http/grpc server must be started together with the tests**
+```go
+err := Test(&HTTPTestCase{
+	Description: "Example",
+	Request: call.Request{
+		URL:    "http://localhost:8080/posts",
+		Method: http.MethodGet,
+	},
+	Response: expect.Response{
+		StatusCode: http.StatusCreated,
+		Body:       "hello",
+	},
+	Assertions: []assertion.Assertion{
+		&assertion.HTTP{
+			Request: expect.Request{
+				URL:    "https://jsonplaceholder.typicode.com/posts/1",
+				Method: http.MethodGet,
+			},
+		},
+	},
+})
+
+if err == nil {
+	t.Fatal(err)
+}
+```
+
+More examples: [HTTP](http_test.go)
+
+#### GRPC
+
+```go
+err = Test(&GRPCTestCase{
+	Description: "Example",
+	Call: call.Call{
+		ServiceClient: c,
+		Function:      "SayHello",
+		Message: &chat.Message{
+			Id:      1,
+			Body:    "Hello From Client!",
+			Comment: "Whatever",
+		},
+	},
+	Output: expect.Output{
+		Message: &chat.Message{
+			Id:      1,
+			Body:    "Hello From the Server!",
+			Comment: "<<PRESENCE>>",
+		},
+	},
+	Assertions: []assertion.Assertion{
+		&assertion.HTTP{
+			Request: expect.Request{
+				URL:    "https://jsonplaceholder.typicode.com/posts/1",
+				Method: http.MethodGet,
+			},
+		},
+	},
+})
+
+if err != nil {
+	t.Fatal(err)
+}
+```
+
+More examples: [GRPC](grpc_test.go)
+
+#### Websocket
+
+```go
+err := Test(&WebsocketTestCase{
+	Description: "Example",
+	Call: call.Websocket{
+		Scheme: call.WebsocketSchemeWS,
+		URL:    "localhost:8080",
+		Path:   "/handler",
+		Message: `{
+			"title": "some title",
+			"userId": 1
+		}`,
+	},
+	Receive: expect.Message{
+		Content: `{
+			"title": "some title",
+			"description": "<<PRESENCE>>"
+		}`,
+	},
+	Assertions: []assertion.Assertion{
+		&assertion.HTTP{
+			Request: expect.Request{
+				URL:    "https://jsonplaceholder.typicode.com/posts/1",
+				Method: http.MethodGet,
+			},
+		},
+	},
+})
+
+if err != nil {
+	t.Fatal(err)
+}
+```
+
+More examples: [Websocket](websocket_test.go)
 
 ## How to use
 
@@ -178,13 +278,13 @@ You can also ignore request body field assertion adding the annotation `<<PRESEN
 
 ### Websocket
 
-#### Request
+#### Call message
 
-A Websocket call will be sent to the your Websocket server depending on how it's configured the `Message` property on the `WebsocketTestCase`. `Message` has many different fields to be configured, see them below:
+A message call will be sent to the your Websocket server depending on how it's configured the `Call` property on the `WebsocketTestCase`. `Websocket` has many different fields to be configured, see them below:
 
 ```go
 // Message sets up how a Websocket message will be sent
-type Message struct {
+type Websocket struct {
 	// URL that will be used to connect to the Websocket server.
 	// eg: my-websocket-server:8080
 	URL string
@@ -214,9 +314,9 @@ type Message struct {
 }
 ```
 
-#### Response
+#### Receive message
 
-A Websocket message will be expected from your server depending on how it's configured the `Message` property on the `WebsocketTestCase`. If your endpoint sends a different message, the `Test` function will return an `error`. `Message` has different fields to be configured, see them below:
+A Websocket message will be expected from your server depending on how it's configured the `Receive` property on the `WebsocketTestCase`. If your endpoint sends a different message, the `Test` function will return an `error`. `Message` has different fields to be configured, see them below:
 
 ```go
 // Message is used to validate if a Websocket message
@@ -236,7 +336,7 @@ You can also ignore request body field assertion adding the annotation `<<PRESEN
 ```go
 &WebsocketTestCase{
 		Description: "Test ignored field",
-		Call: call.Message{
+		Call: call.Websocket{
 			Scheme: call.WebsocketSchemeWS,
 			URL:    "localhost:8090",
 			Path:   "/websocket",
@@ -245,7 +345,7 @@ You can also ignore request body field assertion adding the annotation `<<PRESEN
 				"userId": 1
 			}`,
 		},
-		Message: expect.Message{
+		Receive: expect.Message{
 			Content: `{
 				"title": "some title",
 				"description": "<<PRESENCE>>",
@@ -268,7 +368,7 @@ In case you want to reuse the Websocket connection of a test case, you can call 
 ```go
 initialTestCase := &WebsocketTestCase{
 	Description: "First test case with a new connection"
-	Call: call.Message{
+	Call: call.Websocket{
 		Scheme:  call.WebsocketSchemeWS,
 		URL:     "localhost:8080",
 		Path:    "/handler",
@@ -286,7 +386,7 @@ conn := initialTestCase.Connection()
 // Use the connection in a second test case
 err = Test(&WebsocketTestCase{
 	Description: "Second test case with the same connection",
-	Call: call.Message{
+	Call: call.Websocket{
 		Connection: conn,
 		Message:    `{}`,
 	},

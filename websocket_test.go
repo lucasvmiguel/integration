@@ -150,7 +150,7 @@ func init() {
 func TestWebsocket_SuccessJSON(t *testing.T) {
 	err := Test(&WebsocketTestCase{
 		Description: "TestWebsocket_SuccessJSON",
-		Call: call.Message{
+		Call: call.Websocket{
 			Scheme: call.WebsocketSchemeWS,
 			URL:    fmt.Sprintf("localhost:%d", 8090),
 			Path:   "/handler-json",
@@ -159,7 +159,7 @@ func TestWebsocket_SuccessJSON(t *testing.T) {
 				"userId": 1
 			}`,
 		},
-		Message: expect.Message{
+		Receive: expect.Message{
 			Content: `{
 				"title": "some title",
 				"description": "<<PRESENCE>>",
@@ -195,8 +195,7 @@ func TestWebsocket_SuccessWithConnectionAlreadyCreated(t *testing.T) {
 
 	err = Test(&WebsocketTestCase{
 		Description: "TestWebsocket_SuccessWithConnectionAlreadyCreated",
-
-		Call: call.Message{
+		Call: call.Websocket{
 			Connection: conn,
 			Scheme:     call.WebsocketSchemeWSS,
 			URL:        "ignored",
@@ -205,7 +204,7 @@ func TestWebsocket_SuccessWithConnectionAlreadyCreated(t *testing.T) {
 				"userId": 1
 			}`,
 		},
-		Message: expect.Message{
+		Receive: expect.Message{
 			Content: `{
 				"title": "some title",
 				"description": "<<PRESENCE>>",
@@ -234,7 +233,7 @@ func TestWebsocket_SuccessWithConnectionAlreadyCreated(t *testing.T) {
 func TestWebsocket_EmptyMessage(t *testing.T) {
 	err := Test(&WebsocketTestCase{
 		Description: "TestWebsocket_EmptyMessage",
-		Call: call.Message{
+		Call: call.Websocket{
 			Scheme: call.WebsocketSchemeWS,
 			URL:    fmt.Sprintf("localhost:%d", 8090),
 			Path:   "/infinite-handler",
@@ -249,7 +248,7 @@ func TestWebsocket_EmptyMessage(t *testing.T) {
 func TestWebsocket_EmptyReturn(t *testing.T) {
 	err := Test(&WebsocketTestCase{
 		Description: "TestWebsocket_EmptyReturn",
-		Call: call.Message{
+		Call: call.Websocket{
 			Scheme:  call.WebsocketSchemeWS,
 			URL:     fmt.Sprintf("localhost:%d", 8090),
 			Path:    "/infinite-handler",
@@ -265,7 +264,7 @@ func TestWebsocket_EmptyReturn(t *testing.T) {
 func TestWebsocket_SuccessWithConnectionWithReturnedConnection(t *testing.T) {
 	initialTestCase := &WebsocketTestCase{
 		Description: "TestWebsocket_SuccessWithConnectionWithReturnedConnection_1",
-		Call: call.Message{
+		Call: call.Websocket{
 			Scheme:  call.WebsocketSchemeWS,
 			URL:     fmt.Sprintf("localhost:%d", 8090),
 			Path:    "/infinite-handler",
@@ -282,7 +281,7 @@ func TestWebsocket_SuccessWithConnectionWithReturnedConnection(t *testing.T) {
 
 	err = Test(&WebsocketTestCase{
 		Description: "TestWebsocket_SuccessWithConnectionWithReturnedConnection_2",
-		Call: call.Message{
+		Call: call.Websocket{
 			Connection: conn,
 			Scheme:     call.WebsocketSchemeWSS,
 			URL:        "ignored",
@@ -297,7 +296,7 @@ func TestWebsocket_SuccessWithConnectionWithReturnedConnection(t *testing.T) {
 func TestWebsocket_SuccessString(t *testing.T) {
 	err := Test(&WebsocketTestCase{
 		Description: "TestWebsocket_SuccessString",
-		Call: call.Message{
+		Call: call.Websocket{
 			Scheme: call.WebsocketSchemeWS,
 			URL:    fmt.Sprintf("localhost:%d", 8090),
 			Path:   "/handler-string",
@@ -309,7 +308,7 @@ func TestWebsocket_SuccessString(t *testing.T) {
 				"userId": 1
 			}`,
 		},
-		Message: expect.Message{
+		Receive: expect.Message{
 			Content: `
 			foo
 			 bar`,
@@ -324,7 +323,7 @@ func TestWebsocket_SuccessString(t *testing.T) {
 func TestWebsocket_InvalidURL(t *testing.T) {
 	err := Test(&WebsocketTestCase{
 		Description: "TestWebsocket_InvalidURL",
-		Call: call.Message{
+		Call: call.Websocket{
 			Scheme: call.WebsocketSchemeWS,
 			URL:    fmt.Sprintf("invalid:%d", 8090),
 			Path:   "/handler-json",
@@ -333,7 +332,7 @@ func TestWebsocket_InvalidURL(t *testing.T) {
 				"userId": 1
 			}`,
 		},
-		Message: expect.Message{
+		Receive: expect.Message{
 			Content: `{
 				"title": "some title",
 				"description": "<<PRESENCE>>",
@@ -362,7 +361,7 @@ func TestWebsocket_InvalidURL(t *testing.T) {
 func TestWebsocket_InvalidPath(t *testing.T) {
 	err := Test(&WebsocketTestCase{
 		Description: "TestWebsocket_InvalidPath",
-		Call: call.Message{
+		Call: call.Websocket{
 			Scheme: call.WebsocketSchemeWS,
 			URL:    fmt.Sprintf("localhost:%d", 8090),
 			Path:   "/invalid",
@@ -371,7 +370,7 @@ func TestWebsocket_InvalidPath(t *testing.T) {
 				"userId": 1
 			}`,
 		},
-		Message: expect.Message{
+		Receive: expect.Message{
 			Content: `{
 				"title": "some title",
 				"description": "<<PRESENCE>>",

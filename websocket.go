@@ -23,10 +23,10 @@ type WebsocketTestCase struct {
 	Description string
 
 	// Call is the Websocket server the test case will try to connect and send a message
-	Call call.Message
+	Call call.Websocket
 
-	// Message is going to be used to assert if the Websocket server message returned what was expected.
-	Message expect.Message
+	// Receive is going to be used to assert if the Websocket server message returned what was expected.
+	Receive expect.Message
 
 	// Assertions that will run in test case
 	Assertions []assertion.Assertion
@@ -85,15 +85,15 @@ func (t *WebsocketTestCase) assert(message []byte) error {
 
 	contentString := string(content)
 
-	if utils.IsJSON(t.Message.Content) {
+	if utils.IsJSON(t.Receive.Content) {
 		je := utils.JsonError{}
-		jsonassert.New(&je).Assertf(contentString, t.Message.Content)
+		jsonassert.New(&je).Assertf(contentString, t.Receive.Content)
 		if je.Err != nil {
 			return errors.Errorf("content is a JSON. content does not match: %v", je.Err.Error())
 		}
 	} else {
-		if contentString != t.Message.Content {
-			return errors.Errorf("content is a regular string. content should be '%s' it got '%s'", t.Message.Content, contentString)
+		if contentString != t.Receive.Content {
+			return errors.Errorf("content is a regular string. content should be '%s' it got '%s'", t.Receive.Content, contentString)
 		}
 	}
 
@@ -126,7 +126,7 @@ func (t *WebsocketTestCase) call(conn *websocket.Conn) error {
 
 func (t *WebsocketTestCase) listenAndCall(conn *websocket.Conn) ([]byte, error) {
 	messageChan := make(chan []byte)
-	timeout := t.Message.Timeout
+	timeout := t.Receive.Timeout
 	if timeout == 0 {
 		timeout = 5 * time.Second
 	}
