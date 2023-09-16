@@ -14,9 +14,8 @@ import (
 	"github.com/lucasvmiguel/integration/expect"
 )
 
-var upgrader = websocket.Upgrader{}
-
 func jsonHandler(w http.ResponseWriter, req *http.Request) {
+	var upgrader = websocket.Upgrader{}
 	c, err := upgrader.Upgrade(w, req, nil)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -68,6 +67,8 @@ func jsonHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 func stringHandler(w http.ResponseWriter, req *http.Request) {
+	var upgrader = websocket.Upgrader{}
+
 	if req.Header.Get("foo") != "bar" {
 		http.Error(w, "invalid header", http.StatusInternalServerError)
 		return
@@ -111,16 +112,44 @@ func stringHandler(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+func infiniteHandler(w http.ResponseWriter, req *http.Request) {
+	var upgrader = websocket.Upgrader{}
+
+	c, err := upgrader.Upgrade(w, req, nil)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer c.Close()
+
+	for {
+		mt, messageReceived, err := c.ReadMessage()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			break
+		}
+
+		if messageReceived != nil {
+			err = c.WriteMessage(mt, []byte(""))
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				break
+			}
+		}
+	}
+}
+
 func init() {
 	http.HandleFunc("/handler-json", jsonHandler)
 	http.HandleFunc("/handler-string", stringHandler)
+	http.HandleFunc("/infinite-handler", infiniteHandler)
 
 	go http.ListenAndServe(":8090", nil)
 }
 
 func TestWebsocket_SuccessJSON(t *testing.T) {
 	err := Test(&WebsocketTestCase{
-		Description: "TestWebsocket_Success",
+		Description: "TestWebsocket_SuccessJSON",
 		Call: call.Message{
 			Scheme: call.WebsocketSchemeWS,
 			URL:    fmt.Sprintf("localhost:%d", 8090),
@@ -165,7 +194,7 @@ func TestWebsocket_SuccessWithConnectionAlreadyCreated(t *testing.T) {
 	}
 
 	err = Test(&WebsocketTestCase{
-		Description: "TestWebsocket_Success",
+		Description: "TestWebsocket_SuccessWithConnectionAlreadyCreated",
 
 		Call: call.Message{
 			Connection: conn,
@@ -202,9 +231,72 @@ func TestWebsocket_SuccessWithConnectionAlreadyCreated(t *testing.T) {
 	}
 }
 
+func TestWebsocket_EmptyMessage(t *testing.T) {
+	err := Test(&WebsocketTestCase{
+		Description: "TestWebsocket_EmptyMessage",
+		Call: call.Message{
+			Scheme: call.WebsocketSchemeWS,
+			URL:    fmt.Sprintf("localhost:%d", 8090),
+			Path:   "/infinite-handler",
+		},
+	})
+
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestWebsocket_EmptyReturn(t *testing.T) {
+	err := Test(&WebsocketTestCase{
+		Description: "TestWebsocket_EmptyReturn",
+		Call: call.Message{
+			Scheme:  call.WebsocketSchemeWS,
+			URL:     fmt.Sprintf("localhost:%d", 8090),
+			Path:    "/infinite-handler",
+			Message: `{}`,
+		},
+	})
+
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestWebsocket_SuccessWithConnectionWithReturnedConnection(t *testing.T) {
+	initialTestCase := &WebsocketTestCase{
+		Description: "TestWebsocket_SuccessWithConnectionWithReturnedConnection_1",
+		Call: call.Message{
+			Scheme:  call.WebsocketSchemeWS,
+			URL:     fmt.Sprintf("localhost:%d", 8090),
+			Path:    "/infinite-handler",
+			Message: `{}`,
+		},
+	}
+
+	err := Test(initialTestCase)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	conn := initialTestCase.Connection()
+
+	err = Test(&WebsocketTestCase{
+		Description: "TestWebsocket_SuccessWithConnectionWithReturnedConnection_2",
+		Call: call.Message{
+			Connection: conn,
+			Scheme:     call.WebsocketSchemeWSS,
+			URL:        "ignored",
+			Message:    `{}`,
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestWebsocket_SuccessString(t *testing.T) {
 	err := Test(&WebsocketTestCase{
-		Description: "TestWebsocket_Success",
+		Description: "TestWebsocket_SuccessString",
 		Call: call.Message{
 			Scheme: call.WebsocketSchemeWS,
 			URL:    fmt.Sprintf("localhost:%d", 8090),
@@ -231,7 +323,7 @@ func TestWebsocket_SuccessString(t *testing.T) {
 
 func TestWebsocket_InvalidURL(t *testing.T) {
 	err := Test(&WebsocketTestCase{
-		Description: "TestWebsocket_InvalidPath",
+		Description: "TestWebsocket_InvalidURL",
 		Call: call.Message{
 			Scheme: call.WebsocketSchemeWS,
 			URL:    fmt.Sprintf("invalid:%d", 8090),

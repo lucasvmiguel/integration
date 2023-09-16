@@ -261,6 +261,41 @@ You can also ignore request body field assertion adding the annotation `<<PRESEN
 
 Reference: https://github.com/kinbiko/jsonassert
 
+#### Connection
+
+In case you want to reuse the Websocket connection of a test case, you can call the `.Connection()` function to get the connection. See below how to do it:
+
+```go
+initialTestCase := &WebsocketTestCase{
+	Description: "First test case with a new connection"
+	Call: call.Message{
+		Scheme:  call.WebsocketSchemeWS,
+		URL:     "localhost:8080",
+		Path:    "/handler",
+	},
+}
+
+err := Test(initialTestCase)
+if err != nil {
+	t.Fatal(err)
+}
+
+// Get the connection established in the first test case
+conn := initialTestCase.Connection()
+
+// Use the connection in a second test case
+err = Test(&WebsocketTestCase{
+	Description: "Second test case with the same connection",
+	Call: call.Message{
+		Connection: conn,
+		Message:    `{}`,
+	},
+})
+if err != nil {
+	t.Fatal(err)
+}
+```
+
 ### Assertions
 
 There are few different assertion that can be made. Assertions work for `SQL` and `HTTP`.

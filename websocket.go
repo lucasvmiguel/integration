@@ -72,6 +72,11 @@ func (t *WebsocketTestCase) Test() error {
 	return nil
 }
 
+// Connection returns the Websocket connection
+func (t *WebsocketTestCase) Connection() *websocket.Conn {
+	return t.Call.Connection
+}
+
 func (t *WebsocketTestCase) assert(message []byte) error {
 	content, err := io.ReadAll(bytes.NewBuffer(message))
 	if err != nil {
@@ -104,7 +109,7 @@ func (t *WebsocketTestCase) connect() (*websocket.Conn, error) {
 
 	conn, _, err := websocket.DefaultDialer.Dial(u.String(), t.Call.Header)
 	if err != nil {
-		return nil, errors.Errorf("error to connect to the Websocket server: %s", err.Error())
+		return nil, errors.Errorf("error to connect to the Websocket server (%s): %s", u.String(), err.Error())
 	}
 
 	return conn, nil
