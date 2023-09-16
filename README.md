@@ -316,7 +316,7 @@ type Websocket struct {
 
 #### Receive message
 
-A Websocket message will be expected from your server depending on how it's configured the `Receive` property on the `WebsocketTestCase`. If your endpoint sends a different message, the `Test` function will return an `error`. `Message` has different fields to be configured, see them below:
+A Websocket message can be configured to be received by your Websocket server using the `Receive` property on the `WebsocketTestCase`. The `Receive` property is optional. If your endpoint sends a different message, the `Test` function will return an `error`. `Message` has different fields to be configured, see them below:
 
 ```go
 // Message is used to validate if a Websocket message

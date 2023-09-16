@@ -2,7 +2,7 @@ package expect
 
 import "time"
 
-// Message is used to validate if a Websocket message
+// Message is used to validate if a Websocket message is correct
 type Message struct {
 	// Content expected in the Websocket message.
 	// A multiline string is valid.

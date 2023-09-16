@@ -26,6 +26,7 @@ type WebsocketTestCase struct {
 	Call call.Websocket
 
 	// Receive is going to be used to assert if the Websocket server message returned what was expected.
+	// This field is optional as a Websocket server can never send a message to the client.
 	Receive expect.Message
 
 	// Assertions that will run in test case
