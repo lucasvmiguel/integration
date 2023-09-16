@@ -80,7 +80,7 @@ func (t *GRPCTestCase) assert(resp []reflect.Value) error {
 	je := utils.JsonError{}
 	jsonassert.New(&je).Assertf(string(respValueJSON), string(expectedValueJSON))
 	if je.Err != nil {
-		return errors.Errorf(" body does not match: %v", je.Err.Error())
+		return errors.Errorf("body does not match: %v", je.Err.Error())
 	}
 
 	if respErr == nil && t.Output.Err == nil {

@@ -60,9 +60,9 @@ func TestPingEndpoint(t *testing.T) {
 ### Examples
 
 You can check more examples below:
+
 - [HTTP](http_test.go)
 - [GRPC](grpc_test.go)
-
 
 **Note: The http/grpc server must be started together with the tests**
 
@@ -74,7 +74,7 @@ See how to use different aspects of the library below.
 
 #### Request
 
-An HTTP request will be sent to the your server depending on how it's configure the `Request` property on the `HTTPTestCase`. `Request` has many different fields to be configured, see them below:
+A HTTP request will be sent to the your server depending on how it's configured the `Request` property on the `HTTPTestCase`. `Request` has many different fields to be configured, see them below:
 
 ```go
 // Request sets up how a HTTP request will be called
@@ -97,7 +97,7 @@ type Request struct {
 
 #### Response
 
-An HTTP response will be expected from your server depending on how it's configure the `Response` property on the `HTTPTestCase`. If your endpoint sends a different response, the `Test` function will return an `error`. `Response` has many different fields to be configured, see them below:
+A HTTP response will be expected from your server depending on how it's configured the `Response` property on the `HTTPTestCase`. If your endpoint sends a different response, the `Test` function will return an `error`. `Response` has many different fields to be configured, see them below:
 
 ```go
 // Response is used to validate if a HTTP response was returned with the correct parameters
@@ -138,7 +138,7 @@ Reference: https://github.com/kinbiko/jsonassert
 
 #### Call
 
-An GRPC call will be sent to the your server depending on how it's configure the `Call` property on the `GRPCTestCase`. `Call` has many different fields to be configured, see them below:
+A GRPC call will be sent to the your server depending on how it's configured the `Call` property on the `GRPCTestCase`. `Call` has many different fields to be configured, see them below:
 
 ```go
 // Call sets up how a GRPC request will be called
@@ -159,7 +159,7 @@ type Call struct {
 
 #### Output
 
-An GRPC output will be expected from your server depending on how it's configure the `Output` property on the `GRPCTestCase`. If your endpoints send a different response, the `Test` function will return an `error`. `Output` has different fields to be configured, see them below:
+A GRPC output will be expected from your server depending on how it's configured the `Output` property on the `GRPCTestCase`. If your endpoints send a different response, the `Test` function will return an `error`. `Output` has different fields to be configured, see them below:
 
 ```go
 // Output is used to validate if a GRPC response was returned with the correct parameters
@@ -176,10 +176,96 @@ type Output struct {
 
 You can also ignore request body field assertion adding the annotation `<<PRESENSE>>`.
 
+### Websocket
+
+#### Request
+
+A Websocket call will be sent to the your Websocket server depending on how it's configured the `Message` property on the `WebsocketTestCase`. `Message` has many different fields to be configured, see them below:
+
+```go
+// Message sets up how a Websocket message will be sent
+type Message struct {
+	// URL that will be used to connect to the Websocket server.
+	// eg: my-websocket-server:8080
+	URL string
+
+	// Path that will be used to connect to the Websocket server.
+	// eg: /websocket
+	Path string
+
+	// Scheme that will be used to connect to the Websocket server.
+	// if nothing is set, the default will be `ws`.
+	// eg: ws or wss
+	Scheme WebsocketScheme
+
+	// Header will be used to connect to the Websocket server.
+	// eg: content-type=application/json
+	Header http.Header
+
+	// Connection is the Websocket connection that will be used to make the calls (this field is optional).
+	// If you want to reuse a connection, you can set it here.
+	// If you set a connection, the `URL`, `Path`, `Header` and `Scheme` will be ignored.
+	Connection *websocket.Conn
+
+	// Message that will be sent with the request.
+	// a multiline string is valid.
+	// eg: { "foo": "bar" }
+	Message string
+}
+```
+
+#### Response
+
+A Websocket message will be expected from your server depending on how it's configured the `Message` property on the `WebsocketTestCase`. If your endpoint sends a different message, the `Test` function will return an `error`. `Message` has different fields to be configured, see them below:
+
+```go
+// Message is used to validate if a Websocket message
+type Message struct {
+	// Content expected in the Websocket message.
+	// A multiline string is valid.
+	// eg: { "foo": "bar" }
+	Content string
+
+	// Timeout is the time to wait for a message to be received.
+	Timeout time.Duration
+}
+```
+
+You can also ignore request body field assertion adding the annotation `<<PRESENSE>>`. Check the example below:
+
+```go
+&WebsocketTestCase{
+		Description: "Test ignored field",
+		Call: call.Message{
+			Scheme: call.WebsocketSchemeWS,
+			URL:    "localhost:8090",
+			Path:   "/websocket",
+			Message: `{
+				"title": "some title",
+				"userId": 1
+			}`,
+		},
+		Message: expect.Message{
+			Content: `{
+				"title": "some title",
+				"description": "<<PRESENCE>>",
+				"userId": 1,
+				"comments": [
+					{ "id": 1, "text": "foo" },
+					{ "id": 2, "text": "bar" }
+				]
+			}`,
+		},
+	}
+```
+
+Reference: https://github.com/kinbiko/jsonassert
+
 ### Assertions
 
-There are few different assertion that can be made. Assertions work for both regular `HTTP` and `GRPC`.
-See them below:
+There are few different assertion that can be made. Assertions work for `SQL` and `HTTP`.
+
+`HTTP` assertion uses the library [httpmock](https://github.com/jarcoal/httpmock). The httpmock library works intercepting all HTTP requests and returns a mocked response. But, in order to make it work, you must run your application in the same process as your tests. Otherwise, the assertions will not work. (SQL assertions don't have this limitation)
 
 #### SQL
 
@@ -188,7 +274,7 @@ SQL assertion checks if an SQL query returns an expected result. See below how t
 ```go
 func TestEndpoint(t *testing.T) {
 	db, _ := connectToDatabase()
-	
+
 	err := integration.Test(&integration.HTTPTestCase{
 		Description: "Test Endpoint",
 		Request: call.Request{
