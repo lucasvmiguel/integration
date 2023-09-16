@@ -21,7 +21,7 @@ import (
 
 const (
 	errMessage = "ERROR"
-	port       = 9000
+	grpcPort   = 9000
 )
 
 type Server struct {
@@ -46,7 +46,7 @@ func (s *Server) SayHello(ctx context.Context, in *chat.Message) (*chat.Message,
 }
 
 func init() {
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", grpcPort))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
@@ -159,7 +159,7 @@ func TestGRPC_NilClient(t *testing.T) {
 
 func client() (chat.ChatServiceClient, error) {
 	var conn *grpc.ClientConn
-	conn, err := grpc.Dial(fmt.Sprintf(":%d", port), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.Dial(fmt.Sprintf(":%d", grpcPort), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, err
 	}
