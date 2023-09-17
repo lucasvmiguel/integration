@@ -4,7 +4,7 @@
 [![run tests](https://github.com/lucasvmiguel/integration/actions/workflows/test.yml/badge.svg)](https://github.com/lucasvmiguel/integration/actions/workflows/test.yml)
 <a href="https://godoc.org/github.com/lucasvmiguel/integration"><img src="https://img.shields.io/badge/api-reference-blue.svg?style=flat-square" alt="GoDoc"></a>
 
-Integration is a Golang tool to run integration tests. Currently, this library supports regular `HTTP` and `GRPC`.
+Integration is a Golang tool to run integration tests.
 
 ## Install
 
@@ -59,7 +59,7 @@ func TestPingEndpoint(t *testing.T) {
 
 ## How to use
 
-See how to use all the available tests cases below.
+See how to use all the available types of test cases below.
 
 ### HTTP
 
