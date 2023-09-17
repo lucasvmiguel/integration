@@ -25,7 +25,7 @@ type GRPCTestCase struct {
 	// Call is what the test case will try to call
 	Call call.Call
 
-	// Output is going to be used to assert if the GRPC response returned what was expected.
+	// Output is going to be used to assert if the GRPC response returned what was expected
 	Output expect.Output
 
 	// Assertions that will run in test case

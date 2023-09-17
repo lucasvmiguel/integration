@@ -24,7 +24,7 @@ type HTTPTestCase struct {
 	// eg: [POST] https://jsonplaceholder.typicode.com/todos
 	Request call.Request
 
-	// Response is going to be used to assert if the HTTP endpoint returned what was expected.
+	// Response is going to be used to assert if the HTTP endpoint returned what was expected
 	Response expect.Response
 
 	// Assertions that will run in test case
@@ -35,7 +35,7 @@ type HTTPTestCase struct {
 func (t *HTTPTestCase) Test() error {
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
-	httpmock.RegisterResponder(t.Request.Method, t.Request.URL, httpmock.InitialTransport.RoundTrip)
+	httpmock.RegisterResponder(t.method(), t.Request.URL, httpmock.InitialTransport.RoundTrip)
 
 	for _, assertion := range t.Assertions {
 		err := assertion.Setup()
@@ -123,11 +123,19 @@ func (t *HTTPTestCase) createHTTPRequest() (*http.Request, error) {
 		reqBody = bytes.NewBufferString(t.Request.Body)
 	}
 
-	req, err := http.NewRequest(t.Request.Method, t.Request.URL, reqBody)
+	req, err := http.NewRequest(t.method(), t.Request.URL, reqBody)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create a new http request")
 	}
 	req.Header = t.Request.Header
 
 	return req, nil
+}
+
+func (t *HTTPTestCase) method() string {
+	method := t.Request.Method
+	if method == "" {
+		method = http.MethodGet
+	}
+	return method
 }

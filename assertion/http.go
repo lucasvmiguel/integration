@@ -24,7 +24,7 @@ type HTTP struct {
 
 // Setup sets up if request will be called as expected
 func (a *HTTP) Setup() error {
-	httpmock.RegisterResponder(a.Request.Method, a.Request.URL,
+	httpmock.RegisterResponder(a.method(), a.Request.URL,
 		func(req *http.Request) (*http.Response, error) {
 			if req.Body != nil {
 				defer req.Body.Close()
@@ -72,7 +72,7 @@ func (a *HTTP) Setup() error {
 
 // Setup does not do anything because the assertions are created on the setup for the HTTP
 func (a *HTTP) Assert() error {
-	reqInfo := fmt.Sprintf("%s %s", a.Request.Method, a.Request.URL)
+	reqInfo := fmt.Sprintf("%s %s", a.method(), a.Request.URL)
 	callCountInfo := httpmock.GetCallCountInfo()
 
 	times, ok := callCountInfo[reqInfo]
@@ -81,4 +81,12 @@ func (a *HTTP) Assert() error {
 	}
 
 	return fmt.Errorf("HTTP request '%s' has never been called", reqInfo)
+}
+
+func (a *HTTP) method() string {
+	method := a.Request.Method
+	if method == "" {
+		method = http.MethodGet
+	}
+	return method
 }
