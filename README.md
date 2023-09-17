@@ -570,6 +570,10 @@ Feel free to create issues for features or fixes.
 
 https://github.com/lucasvmiguel/integration/issues
 
+## Contributing
+
+If you want to contribute to this project, please read the [contributing guide](docs/contributing.md).
+
 ## License
 
 You can see this project's license [here](LICENSE).
