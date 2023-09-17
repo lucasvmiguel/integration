@@ -35,6 +35,11 @@ type WebsocketTestCase struct {
 
 // Test runs an Websocket test case
 func (t *WebsocketTestCase) Test() error {
+	err := t.validate()
+	if err != nil {
+		return errors.New(errString(err, t.Description, "failed to validate test case"))
+	}
+
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
 
@@ -157,4 +162,12 @@ func (t *WebsocketTestCase) listenAndCall(conn *websocket.Conn) ([]byte, error) 
 	case <-time.After(timeout):
 		return nil, errors.Errorf("timeout to read message from the Websocket server")
 	}
+}
+
+func (t *WebsocketTestCase) validate() error {
+	if t.Call.URL == "" {
+		return errors.New("URL is required")
+	}
+
+	return nil
 }

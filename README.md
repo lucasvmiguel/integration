@@ -4,7 +4,7 @@
 [![run tests](https://github.com/lucasvmiguel/integration/actions/workflows/test.yml/badge.svg)](https://github.com/lucasvmiguel/integration/actions/workflows/test.yml)
 <a href="https://godoc.org/github.com/lucasvmiguel/integration"><img src="https://img.shields.io/badge/api-reference-blue.svg?style=flat-square" alt="GoDoc"></a>
 
-Integration is a Golang tool to run integration tests. Currently, this library supports regular `HTTP` and `GRPC`.
+Integration is a Golang tool to run integration tests.
 
 ## Install
 
@@ -57,22 +57,28 @@ func TestPingEndpoint(t *testing.T) {
 }
 ```
 
-### Examples
+## How to use
 
-You can check more examples below:
+See how to use all the available types of test cases below.
 
-#### HTTP
+### HTTP
+
+A HTTP request can be tested using the `HTTPTestCase` struct. See below how to use it:
+
+#### Example
 
 ```go
-err := Test(&HTTPTestCase{
+integration.HTTPTestCase{
 	Description: "Example",
 	Request: call.Request{
-		URL:    "http://localhost:8080/posts",
-		Method: http.MethodGet,
+		URL:    "http://localhost:8080/posts/1",
 	},
 	Response: expect.Response{
-		StatusCode: http.StatusCreated,
-		Body:       "hello",
+		StatusCode: http.StatusOK,
+		Body: `{
+			"title": "some title",
+			"code": "<<PRESENCE>>"
+		}`,
 	},
 	Assertions: []assertion.Assertion{
 		&assertion.HTTP{
@@ -82,19 +88,51 @@ err := Test(&HTTPTestCase{
 			},
 		},
 	},
-})
-
-if err == nil {
-	t.Fatal(err)
 }
 ```
 
-More examples: [HTTP](http_test.go)
+#### Fields
 
-#### GRPC
+Fields to configure for `HTTPTestCase` struct
+
+| Field       | Description                                                                            | Example                 | Required? | Default |
+| ----------- | -------------------------------------------------------------------------------------- | ----------------------- | --------- | ------- |
+| Description | Description describes a test case                                                      | My test                 | false     | -       |
+| Request     | Request is what the test case will try to call                                         | call.Request{}          | true      | -       |
+| Response    | Response is going to be used to assert if the HTTP endpoint returned what was expected | expect.Response{}       | true      | -       |
+| Assertions  | Assertions that will run in test case                                                  | []assertion.Assertion{} | false     | -       |
+
+#### Request
+
+A HTTP request will be sent to the your server depending on how it's configured the `Request` property on the `HTTPTestCase`. `Request` has many different fields to be configured, see them below:
+
+| Field  | Description                                                        | Example                                    | Required? | Default |
+| ------ | ------------------------------------------------------------------ | ------------------------------------------ | --------- | ------- |
+| URL    | URL that will be called on the request                             | https://jsonplaceholder.typicode.com/todos | true      | -       |
+| Method | Method that will be called on the request                          | POST                                       | false     | GET     |
+| Body   | Body that will be sent with the request. Multiline string is valid | { "foo": "bar" }                           | false     | -       |
+| Header | Header will be sent with the request                               | content-type=application/json              | false     | -       |
+
+#### Response
+
+A HTTP response will be expected from your server depending on how it's configured the `Response` property on the `HTTPTestCase`. If your endpoint sends a different response, the `Test` function will return an `error`. `Response` has many different fields to be configured, see them below:
+
+| Field      | Description                                                                                             | Example                       | Required? | Default |
+| ---------- | ------------------------------------------------------------------------------------------------------- | ----------------------------- | --------- | ------- |
+| StatusCode | StatusCode expected in the HTTP response                                                                | 200                           | true      | -       |
+| Body       | Body expected in the HTTP response                                                                      | hello                         | false     | -       |
+| Header     | Header expected in the HTTP response. Every header set in here will be asserted, others will be ignored | content-type=application/json | false     | -       |
+
+You can also ignore a JSON response body field assertion adding the annotation `<<PRESENSE>>`. More info [here](https://github.com/kinbiko/jsonassert)
+
+### GRPC
+
+A GRPC call can be tested using the `GRPCTestCase` struct. See below how to use it:
+
+#### Example
 
 ```go
-err = Test(&GRPCTestCase{
+integration.GRPCTestCase{
 	Description: "Example",
 	Call: call.Call{
 		ServiceClient: c,
@@ -116,28 +154,56 @@ err = Test(&GRPCTestCase{
 		&assertion.HTTP{
 			Request: expect.Request{
 				URL:    "https://jsonplaceholder.typicode.com/posts/1",
-				Method: http.MethodGet,
 			},
 		},
 	},
-})
-
-if err != nil {
-	t.Fatal(err)
 }
 ```
 
-More examples: [GRPC](grpc_test.go)
+#### Fields
 
-#### Websocket
+Fields to configure for `GRPCTestCase` struct
+
+| Field       | Description                                                                          | Example                 | Required? | Default |
+| ----------- | ------------------------------------------------------------------------------------ | ----------------------- | --------- | ------- |
+| Description | Description describes a test case                                                    | My test                 | false     | -       |
+| Call        | Call is what the test case will try to call                                          | call.Call{}             | true      | -       |
+| Output      | Output is going to be used to assert if the GRPC response returned what was expected | expect.Output{}         | true      | -       |
+| Assertions  | Assertions that will run in test case                                                | []assertion.Assertion{} | false     | -       |
+
+#### Call
+
+A GRPC call will be sent to the your GRPC server depending on how it's configured the `Call` property on the `GRPCTestCase`. `Call` has many different fields to be configured, see them below:
+
+| Field         | Description                                 | Example                                              | Required? | Default |
+| ------------- | ------------------------------------------- | ---------------------------------------------------- | --------- | ------- |
+| ServiceClient | GRPC service client used to call the server | ChatServiceClient                                    | true      | -       |
+| Function      | Function that will be called on the request | SayHello                                             | true      | -       |
+| Message       | Message that will be sent with the request  | &chat.Message{Id: 1, Body: "Hello From the Server!"} | true      | -       |
+
+#### Output
+
+A GRPC output will be expected from your server depending on how it's configured the `Output` property on the `GRPCTestCase`. If your endpoints send a different response, the `Test` function will return an `error`. `Output` has different fields to be configured, see them below:
+
+| Field   | Description                           | Example                                                                       | Required? | Default |
+| ------- | ------------------------------------- | ----------------------------------------------------------------------------- | --------- | ------- |
+| Message | Message expected in the GRPC response | &chat.Message{Id: 1, Body: "Hello From the Server!", Comment: "<<PRESENCE>>"} | false     | -       |
+| Err     | Error expected in the GRPC response   | status.New(codes.Unavailable, "error message")                                | false     | -       |
+
+You can also ignore a JSON message field assertion adding the annotation `<<PRESENSE>>`. More info [here](https://github.com/kinbiko/jsonassert)
+
+### Websocket
+
+A Websocket call can be tested using the `WebsocketTestCase` struct. See below how to use it:
+
+#### Example
 
 ```go
-err := Test(&WebsocketTestCase{
+integration.WebsocketTestCase{
 	Description: "Example",
 	Call: call.Websocket{
-		Scheme: call.WebsocketSchemeWS,
 		URL:    "localhost:8080",
-		Path:   "/handler",
+		Path:   "/websocket",
 		Message: `{
 			"title": "some title",
 			"userId": 1
@@ -146,236 +212,71 @@ err := Test(&WebsocketTestCase{
 	Receive: expect.Message{
 		Content: `{
 			"title": "some title",
-			"description": "<<PRESENCE>>"
+			"description": "<<PRESENCE>>",
+			"userId": 1,
+			"comments": [
+				{ "id": 1, "text": "foo" },
+				{ "id": 2, "text": "bar" }
+			]
 		}`,
 	},
 	Assertions: []assertion.Assertion{
 		&assertion.HTTP{
 			Request: expect.Request{
 				URL:    "https://jsonplaceholder.typicode.com/posts/1",
-				Method: http.MethodGet,
 			},
 		},
 	},
-})
-
-if err != nil {
-	t.Fatal(err)
 }
 ```
 
-More examples: [Websocket](websocket_test.go)
+#### Fields
 
-## How to use
-
-See how to use different aspects of the library below.
-
-### HTTP
-
-#### Request
-
-A HTTP request will be sent to the your server depending on how it's configured the `Request` property on the `HTTPTestCase`. `Request` has many different fields to be configured, see them below:
-
-```go
-// Request sets up how a HTTP request will be called
-type Request struct {
-	// URL that will be called on the request
-	// eg: https://jsonplaceholder.typicode.com/todos
-	URL string
-	// Method that will be called on the request
-	// eg: POST
-	Method string
-	// Body that will be sent with the request
-	// a multiline string is valid
-	// eg: { "foo": "bar" }
-	Body string
-	// Header will be sent with the request
-	// eg: content-type=application/json
-	Header http.Header
-}
-```
-
-#### Response
-
-A HTTP response will be expected from your server depending on how it's configured the `Response` property on the `HTTPTestCase`. If your endpoint sends a different response, the `Test` function will return an `error`. `Response` has many different fields to be configured, see them below:
-
-```go
-// Response is used to validate if a HTTP response was returned with the correct parameters
-type Response struct {
-	// StatusCode expected in the HTTP response
-	StatusCode int
-	// Body expected in the HTTP response
-	Body string
-	// Header expected in the HTTP response.
-	// Every header set in here will be asserted, others will be ignored.
-	// eg: content-type=application/json
-	Header http.Header
-}
-```
-
-You can also ignore request body field assertion adding the annotation `<<PRESENSE>>`. Check the example below:
-
-```go
-&integration.HTTPTestCase{
-	Description: "Test Ignored field",
-	Request: call.Request{
-		URL:    "http://localhost:8080/test",
-		Method: goHTTP.MethodPost
-	},
-	Response: expect.Response{
-		StatusCode: goHTTP.StatusCreated,
-		Body: `{
-			"title": "some title",
-			"code": "<<PRESENCE>>"
-		}`,
-	},
-}
-```
-
-Reference: https://github.com/kinbiko/jsonassert
-
-### GRPC
+| Field       | Description                                                                                                                                                                            | Example                 | Required? | Default |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- | --------- | ------- |
+| Description | Description describes a test case                                                                                                                                                      | My test                 | false     | -       |
+| Call        | Call is the Websocket server the test case will try to connect and send a message                                                                                                      | call.Websocket{}        | true      | -       |
+| Receive     | Receive is going to be used to assert if the Websocket server message returned what was expected. This field is optional as a Websocket server can never send a message to the client. | expect.Message{}        | false     | -       |
+| Assertions  | Assertions that will run in test case                                                                                                                                                  | []assertion.Assertion{} | false     | -       |
 
 #### Call
 
-A GRPC call will be sent to the your server depending on how it's configured the `Call` property on the `GRPCTestCase`. `Call` has many different fields to be configured, see them below:
-
-```go
-// Call sets up how a GRPC request will be called
-type Call struct {
-	// GRPC service client used to call the server
-	// eg: ChatServiceClient
-	ServiceClient interface{}
-
-	// Function that will be called on the request
-	// eg: SayHello
-	Function string
-
-	// Message that will be sent with the request
-	// Eg: &chat.Message{Id: 1, Body: "Hello From the Server!"}
-	Message interface{}
-}
-```
-
-#### Output
-
-A GRPC output will be expected from your server depending on how it's configured the `Output` property on the `GRPCTestCase`. If your endpoints send a different response, the `Test` function will return an `error`. `Output` has different fields to be configured, see them below:
-
-```go
-// Output is used to validate if a GRPC response was returned with the correct parameters
-type Output struct {
-	// Message expected in the GRPC response
-	// Eg: &chat.Message{Id: 1, Body: "Hello From the Server!", Comment: "<<PRESENCE>>"}
-	Message interface{}
-
-	// Error expected in the GRPC response
-	// Eg: status.New(codes.Unavailable, "error message"),
-	Err *status.Status
-}
-```
-
-You can also ignore request body field assertion adding the annotation `<<PRESENSE>>`.
-
-### Websocket
-
-#### Call message
-
 A message call will be sent to the your Websocket server depending on how it's configured the `Call` property on the `WebsocketTestCase`. `Websocket` has many different fields to be configured, see them below:
 
-```go
-// Message sets up how a Websocket message will be sent
-type Websocket struct {
-	// URL that will be used to connect to the Websocket server.
-	// eg: my-websocket-server:8080
-	URL string
+| Field      | Description                                                                                                                                                                                                                                     | Example                       | Required? | Default |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- | --------- | ------- |
+| URL        | URL that will be used to connect to the Websocket server                                                                                                                                                                                        | my-websocket-server:8080      | true      | -       |
+| Path       | Path that will be used to connect to the Websocket server                                                                                                                                                                                       | /websocket                    | false     | -       |
+| Scheme     | Scheme that will be used to connect to the Websocket server                                                                                                                                                                                     | ws or wss                     | false     | ws      |
+| Header     | Header will be sent with the request                                                                                                                                                                                                            | content-type=application/json | false     | -       |
+| Message    | Body that will be sent with the request. Multiline string is valid                                                                                                                                                                              | { "foo": "bar" }              | false     | -       |
+| Connection | Connection is the Websocket connection that will be used to make the calls (this field is optional). If you want to reuse a connection, you can set it here. If you set a connection, the `URL`, `Path`, `Header` and `Scheme` will be ignored. | { "foo": "bar" }              | false     | -       |
 
-	// Path that will be used to connect to the Websocket server.
-	// eg: /websocket
-	Path string
+#### Receive
 
-	// Scheme that will be used to connect to the Websocket server.
-	// if nothing is set, the default will be `ws`.
-	// eg: ws or wss
-	Scheme WebsocketScheme
+A Websocket message can be expected from your Websocket server using the `Receive` property on the `WebsocketTestCase`. The `Receive` property is optional. If your endpoint sends a different message, the `Test` function will return an `error`. `Message` has different fields to be configured, see them below:
 
-	// Header will be used to connect to the Websocket server.
-	// eg: content-type=application/json
-	Header http.Header
+| Field   | Description                                                             | Example     | Required? | Default   |
+| ------- | ----------------------------------------------------------------------- | ----------- | --------- | --------- |
+| Content | Content expected in the Websocket message. A multiline string is valid. | My test     | false     | -         |
+| Timeout | Timeout is the time to wait for a message to be received.               | time.Second | false     | 5 seconds |
 
-	// Connection is the Websocket connection that will be used to make the calls (this field is optional).
-	// If you want to reuse a connection, you can set it here.
-	// If you set a connection, the `URL`, `Path`, `Header` and `Scheme` will be ignored.
-	Connection *websocket.Conn
-
-	// Message that will be sent with the request.
-	// a multiline string is valid.
-	// eg: { "foo": "bar" }
-	Message string
-}
-```
-
-#### Receive message
-
-A Websocket message can be expected by your Websocket server using the `Receive` property on the `WebsocketTestCase`. The `Receive` property is optional. If your endpoint sends a different message, the `Test` function will return an `error`. `Message` has different fields to be configured, see them below:
-
-```go
-// Message is used to validate if a Websocket message
-type Message struct {
-	// Content expected in the Websocket message.
-	// A multiline string is valid.
-	// eg: { "foo": "bar" }
-	Content string
-
-	// Timeout is the time to wait for a message to be received.
-	Timeout time.Duration
-}
-```
-
-You can also ignore request body field assertion adding the annotation `<<PRESENSE>>`. Check the example below:
-
-```go
-&WebsocketTestCase{
-		Description: "Test ignored field",
-		Call: call.Websocket{
-			Scheme: call.WebsocketSchemeWS,
-			URL:    "localhost:8090",
-			Path:   "/websocket",
-			Message: `{
-				"title": "some title",
-				"userId": 1
-			}`,
-		},
-		Receive: expect.Message{
-			Content: `{
-				"title": "some title",
-				"description": "<<PRESENCE>>",
-				"userId": 1,
-				"comments": [
-					{ "id": 1, "text": "foo" },
-					{ "id": 2, "text": "bar" }
-				]
-			}`,
-		},
-	}
-```
-
-Reference: https://github.com/kinbiko/jsonassert
+You can also ignore a JSON message field assertion adding the annotation `<<PRESENSE>>`. More info [here](https://github.com/kinbiko/jsonassert)
 
 #### Connection
 
 In case you want to reuse the Websocket connection of a test case, you can call the `.Connection()` function to get the connection. See below how to do it:
 
 ```go
-initialTestCase := &WebsocketTestCase{
+initialTestCase := &integration.WebsocketTestCase{
 	Description: "First test case with a new connection"
 	Call: call.Websocket{
-		Scheme:  call.WebsocketSchemeWS,
 		URL:     "localhost:8080",
-		Path:    "/handler",
+		Message:    `ping 1`,
 	},
 }
 
-err := Test(initialTestCase)
+err := integration.Test(initialTestCase)
 if err != nil {
 	t.Fatal(err)
 }
@@ -384,11 +285,11 @@ if err != nil {
 conn := initialTestCase.Connection()
 
 // Use the connection in a second test case
-err = Test(&WebsocketTestCase{
+err = integration.Test(&integration.WebsocketTestCase{
 	Description: "Second test case with the same connection",
 	Call: call.Websocket{
 		Connection: conn,
-		Message:    `{}`,
+		Message:    `ping 2`,
 	},
 })
 if err != nil {
@@ -398,177 +299,124 @@ if err != nil {
 
 ### Assertions
 
-There are few different assertion that can be made. Assertions work for `SQL` and `HTTP`.
-
-`HTTP` assertion uses the library [httpmock](https://github.com/jarcoal/httpmock). The httpmock library works intercepting all HTTP requests and returns a mocked response. But, in order to make it work, you must run your application in the same process as your tests. Otherwise, the assertions will not work. (SQL assertions don't have this limitation)
+Assertions are a useful way of validating either a HTTP request or a database change made by your server. Assertions are also used to mock external HTTP APIs responses.
 
 #### SQL
 
-SQL assertion checks if an SQL query returns an expected result. See below how to use it.
+SQL assertion checks if an SQL query returns an expected result. See below how to use `assertion.SQL` for it.
+
+##### Example
 
 ```go
-func TestEndpoint(t *testing.T) {
-	db, _ := connectToDatabase()
-
-	err := integration.Test(&integration.HTTPTestCase{
-		Description: "Test Endpoint",
-		Request: call.Request{
-			URL:    "http://localhost:8080/test",
-			Method: http.MethodGet,
-		},
-		Response: expect.Response{
-			StatusCode: http.StatusOK,
-			Body:       "hello",
-		},
-		Assertions: []assertion.Assertion{
-			&assertion.SQL{
-				DB: db,
-				Query: call.Query{
-					Statement: `
-					SELECT id, title, description, category_id FROM products
-					`,
-				},
-				Result: expect.Result{
-					{"id": 1, "title": "foo1", "description": "bar1", "category_id": 1},
-					{"id": 2, "title": "foo2", "description": "bar2", "category_id": 1},
-				},
+integration.HTTPTestCase{
+	Description: "Example",
+	Request: call.Request{
+		URL:    "http://localhost:8080/test",
+	},
+	Response: expect.Response{
+		StatusCode: http.StatusOK,
+	},
+	Assertions: []assertion.Assertion{
+		&assertion.SQL{
+			DB: db,
+			Query: call.Query{
+				Statement: `
+				SELECT id, title, description, category_id FROM products
+				`,
+			},
+			Result: expect.Result{
+				{"id": 1, "title": "foo1", "description": "bar1", "category_id": 1},
+				{"id": 2, "title": "foo2", "description": "bar2", "category_id": 1},
 			},
 		},
-	})
-
-	if err != nil {
-		t.Fatal(err)
-	}
+	},
 }
 ```
 
-See all available fields when configuring an `SQLAssertion`:
+##### Fields
 
-```go
-// SQL asserts a SQL query
-type SQL struct {
-	// DB database used to query the data to assert
-	DB *sql.DB
-	// Query that will run in the database
-	Query call.Query
-	// ResultExpected expects result in json that will be returned when the query run.
-	Result expect.Result
-}
-```
+| Field  | Description                                                            | Example                  | Required? | Default |
+| ------ | ---------------------------------------------------------------------- | ------------------------ | --------- | ------- |
+| DB     | DB database used to query the data to assert                           | sql.DB{}                 | true      | -       |
+| Query  | Query that will run in the database                                    | call.Query{}             | true      | -       |
+| Result | Result expects result in json that will be returned when the query run | expect.Result{{"id": 1}} | true      | -       |
 
-```go
-// Query sets up how a SQL query will be called
-type Query struct {
-	// Statement that will be queried.
-	// eg: SELECT * FROM products
-	Statement string
+##### Query
 
-	// Params that can be passed to the SQL query
-	Params []any
-}
-```
-
-```go
-// Result is used to validate if a SQL query was returned with the correct items and fields
-type Result []map[string]any
-```
+| Field     | Description                                | Example                     | Required? | Default |
+| --------- | ------------------------------------------ | --------------------------- | --------- | ------- |
+| Statement | Statement that will be queried             | eg: SELECT \* FROM products | true      | -       |
+| Params    | Params that can be passed to the SQL query | []int{1, 2}                 | false     | -       |
 
 #### HTTP
 
 HTTP assertion checks if an HTTP request was sent while your endpoint was being called.
 The test will fail if you don't call the endpoints configured on the HTTP assertion. However, if you call multiple times an endpoint and you just have one HTTP assertion configured, the test will pass.
 
-See below how to use it:
+IMPORTANT: `HTTP` assertions uses the library [httpmock](https://github.com/jarcoal/httpmock). The httpmock library works intercepting all HTTP requests and returns a mocked response. But, in order to make it work, you must run your application in the same process as your tests. Otherwise, the assertions will not work. Therefore, HTTP assertions will prevent any real requests to be made.
+
+##### Example
 
 ```go
-func TestEndpoint(t *testing.T) {
-	err := integration.Test(&integration.HTTPTestCase{
-		Description: "Test Endpoint",
-		Request: call.Request{
-			URL:    "http://localhost:8080/test",
-			Method: http.MethodGet,
-		},
-		Response: expect.Response{
-			StatusCode: http.StatusOK,
-			Body:       "hello",
-		},
-		Assertions: []assertion.Assertion{
-			&assertion.HTTP{
-				Request: expect.Request{
-					URL:    "https://jsonplaceholder.typicode.com/posts",
-					Method: http.MethodPost,
-					Body: `{
-						"title": "foo",
-						"body": "bar",
-						"userId": "<<PRESENCE>>"
-					}`,
-				},
-				Response: mock.Response{
-					StatusCode: http.StatusOK,
-					Body: `{
-						"id": 1,
-						"title": "foo bar"
-					}`,
-				},
+integration.HTTPTestCase{
+	Description: "Example",
+	Request: call.Request{
+		URL:    "http://localhost:8080/test",
+	},
+	Response: expect.Response{
+		StatusCode: http.StatusOK,
+	},
+	Assertions: []assertion.Assertion{
+		&assertion.HTTP{
+			Request: expect.Request{
+				URL:    "https://jsonplaceholder.typicode.com/posts",
+				Method: http.MethodPost,
+				Body: `{
+					"title": "foo",
+					"body": "bar",
+					"userId": "<<PRESENCE>>"
+				}`,
+			},
+			Response: mock.Response{
+				StatusCode: http.StatusOK,
+				Body: `{
+					"id": 1,
+					"title": "foo bar"
+				}`,
 			},
 		},
-	})
-
-	if err != nil {
-		t.Fatal(err)
-	}
+	},
 }
 ```
 
-See all available fields when configuring an `HTTPAssertion`:
+##### Fields
 
-```go
-// HTTP asserts a http request
-type HTTP struct {
-	// Request will assert if request was made with correct parameters
-	Request expect.Request
-	// Response mocks a fake response to avoid your test making real http request over the internet
-	Response mock.Response
-}
-```
+| Field    | Description                                                                                  | Example          | Required? | Default |
+| -------- | -------------------------------------------------------------------------------------------- | ---------------- | --------- | ------- |
+| Request  | Request will assert if request was made with correct parameters                              | expect.Request{} | true      | -       |
+| Response | Response mocks a fake response to avoid your test making real http request over the internet | mock.Response{}  | true      | -       |
 
-```go
-// Request struct is used to validate if a HTTP request was made with the correct parameters
-type Request struct {
-	// URL expected in the HTTP request
-	URL string
-	// Method expected in the HTTP request
-	Method string
-	// Header expected in the HTTP request
-	// Every header set in here will be asserted, others will be ignored.
-	Header http.Header
-	// Body expected in the HTTP request.
-	// A multiline string is valid.
-	// eg: { "foo": "bar" }
-	Body string
-}
-```
+##### Request
 
-You can also ignore request body field assertion adding the annotation `<<PRESENSE>>`
+| Field  | Description                                                                                             | Example                                    | Required? | Default |
+| ------ | ------------------------------------------------------------------------------------------------------- | ------------------------------------------ | --------- | ------- |
+| URL    | URL expected in the HTTP request                                                                        | https://jsonplaceholder.typicode.com/todos | true      | -       |
+| Method | Method expected in the HTTP request                                                                     | POST                                       | false     | GET     |
+| Body   | Body expected in the HTTP request. Multiline string is valid                                            | { "foo": "bar" }                           | false     | -       |
+| Header | Header expected in the HTTP request. Every header set in here will be asserted, others will be ignored. | content-type=application/json              | false     | -       |
 
-```go
-// Response is used to return a mocked response
-type Response struct {
-	// StatusCode that will be returned in the mocked HTTP response
-	// default value is 200
-	StatusCode int
-	// Body that will be returned in the mocked HTTP response.
-	// A multiline string is valid.
-	// eg: { "foo": "bar" }
-	Body string
-}
-```
+You can also ignore a JSON response body field assertion adding the annotation `<<PRESENSE>>`. More info [here](https://github.com/kinbiko/jsonassert)
 
-## Roadmap
+##### Response
 
-Feel free to create issues for features or fixes.
+| Field      | Description                                                                       | Example          | Required? | Default |
+| ---------- | --------------------------------------------------------------------------------- | ---------------- | --------- | ------- |
+| StatusCode | StatusCode that will be returned in the mocked HTTP response                      | 404              | false     | 200     |
+| Body       | Body that will be returned in the mocked HTTP response. Multiline string is valid | { "foo": "bar" } | false     | -       |
 
-https://github.com/lucasvmiguel/integration/issues
+## Contributing
+
+If you want to contribute to this project, please read the [contributing guide](docs/contributing.md).
 
 ## License
 
@@ -580,3 +428,4 @@ It's important to mention that this project contains the following libs:
 - github.com/pkg/errors
 - github.com/kinbiko/jsonassert
 - google.golang.org/grpc
+- github.com/gorilla/websocket
