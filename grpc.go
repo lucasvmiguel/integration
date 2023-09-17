@@ -34,6 +34,11 @@ type GRPCTestCase struct {
 
 // Test runs an GRPC test case
 func (t *GRPCTestCase) Test() error {
+	err := t.validate()
+	if err != nil {
+		return errors.New(errString(err, t.Description, "failed to validate test case"))
+	}
+
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
 
@@ -121,4 +126,20 @@ func (t *GRPCTestCase) call() ([]reflect.Value, error) {
 	}
 
 	return function.Call(args), nil
+}
+
+func (t *GRPCTestCase) validate() error {
+	if t.Call.ServiceClient == nil {
+		return errors.New("grpc client is required")
+	}
+
+	if t.Call.Function == "" {
+		return errors.New("grpc function is required")
+	}
+
+	if t.Call.Message == nil {
+		return errors.New("grpc message is required")
+	}
+
+	return nil
 }

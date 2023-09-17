@@ -15,7 +15,7 @@ type SQL struct {
 	DB *sql.DB
 	// Query that will run in the database
 	Query call.Query
-	// ResultExpected expects result in json that will be returned when the query run.
+	// Result expects result in json that will be returned when the query run
 	Result expect.Result
 }
 
@@ -27,6 +27,11 @@ func (a *SQL) Setup() error {
 // Assert checks if query returns the expected result
 // Reference: https://kylewbanks.com/blog/query-result-to-map-in-golang
 func (a *SQL) Assert() error {
+	err := a.validate()
+	if err != nil {
+		return errors.Wrap(err, "failed to validate assertion")
+	}
+
 	result := []map[string]interface{}{}
 	rows, err := a.DB.Query(a.Query.Statement, a.Query.Params...)
 	if err != nil {
@@ -69,6 +74,22 @@ func (a *SQL) Assert() error {
 				return fmt.Errorf("SQL result number %d don't match, it should be %v but it got %v", i, a.Result[i], r)
 			}
 		}
+	}
+
+	return nil
+}
+
+func (a *SQL) validate() error {
+	if a.DB == nil {
+		return errors.New("database is required")
+	}
+
+	if a.Query.Statement == "" {
+		return errors.New("query statement is required")
+	}
+
+	if a.Result == nil {
+		return errors.New("result is required")
 	}
 
 	return nil

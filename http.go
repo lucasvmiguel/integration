@@ -33,6 +33,11 @@ type HTTPTestCase struct {
 
 // Test runs an HTTP test case
 func (t *HTTPTestCase) Test() error {
+	err := t.validate()
+	if err != nil {
+		return errors.New(errString(err, t.Description, "failed to validate test case"))
+	}
+
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
 	httpmock.RegisterResponder(t.method(), t.Request.URL, httpmock.InitialTransport.RoundTrip)
@@ -138,4 +143,16 @@ func (t *HTTPTestCase) method() string {
 		method = http.MethodGet
 	}
 	return method
+}
+
+func (t *HTTPTestCase) validate() error {
+	if t.Request.URL == "" {
+		return errors.New("request URL is required")
+	}
+
+	if t.Response.StatusCode == 0 {
+		return errors.New("response status code is required")
+	}
+
+	return nil
 }

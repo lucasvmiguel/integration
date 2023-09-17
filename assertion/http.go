@@ -72,6 +72,11 @@ func (a *HTTP) Setup() error {
 
 // Setup does not do anything because the assertions are created on the setup for the HTTP
 func (a *HTTP) Assert() error {
+	err := a.validate()
+	if err != nil {
+		return errors.Wrap(err, "failed to validate assertion")
+	}
+
 	reqInfo := fmt.Sprintf("%s %s", a.method(), a.Request.URL)
 	callCountInfo := httpmock.GetCallCountInfo()
 
@@ -89,4 +94,12 @@ func (a *HTTP) method() string {
 		method = http.MethodGet
 	}
 	return method
+}
+
+func (a *HTTP) validate() error {
+	if a.Request.URL == "" {
+		return errors.New("URL is required")
+	}
+
+	return nil
 }
