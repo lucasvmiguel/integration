@@ -2,6 +2,7 @@ package integration
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -73,7 +74,7 @@ func (t *HTTPTestCase) assert(resp *http.Response) error {
 	defer resp.Body.Close()
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return errors.Wrap(err, "failed to read response body")
+		return fmt.Errorf("failed to read response body: %w", err)
 	}
 
 	respBodyString := string(respBody)
@@ -107,13 +108,13 @@ func (t *HTTPTestCase) assert(resp *http.Response) error {
 func (t *HTTPTestCase) call() (*http.Response, error) {
 	req, err := t.createHTTPRequest()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create http request")
+		return nil, fmt.Errorf("failed to create http request: %w", err)
 	}
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to call endpoint")
+		return nil, fmt.Errorf("failed to call endpoint: %w", err)
 	}
 	return resp, nil
 }
@@ -130,7 +131,7 @@ func (t *HTTPTestCase) createHTTPRequest() (*http.Request, error) {
 
 	req, err := http.NewRequest(t.method(), t.Request.URL, reqBody)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create a new http request")
+		return nil, fmt.Errorf("ffailed to create a new http request: %w", err)
 	}
 	req.Header = t.Request.Header
 

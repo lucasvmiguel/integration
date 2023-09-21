@@ -12,7 +12,6 @@ import (
 	"github.com/lucasvmiguel/integration/call"
 	"github.com/lucasvmiguel/integration/expect"
 	"github.com/lucasvmiguel/integration/internal/chat"
-	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
@@ -35,7 +34,7 @@ func (s *Server) SayHello(ctx context.Context, in *chat.Message) (*chat.Message,
 
 	_, err := http.Get("https://jsonplaceholder.typicode.com/posts/1")
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to call endpoint")
+		return nil, fmt.Errorf("failed to call endpoint: %w")
 	}
 
 	return &chat.Message{

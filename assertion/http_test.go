@@ -62,6 +62,47 @@ func TestHTTPAssert_RequestCalled(t *testing.T) {
 	}
 }
 
+func TestHTTPAssert_RequestCalledTwice(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
+	assertion := HTTP{
+		Request: expect.Request{
+			URL:    "https://jsonplaceholder.typicode.com/posts/1",
+			Method: http.MethodGet,
+			Times:  2,
+		},
+	}
+
+	err := assertion.Setup()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resp, err := http.Get("https://jsonplaceholder.typicode.com/posts/1")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("default status code should be %d", http.StatusOK)
+	}
+
+	resp, err = http.Get("https://jsonplaceholder.typicode.com/posts/1")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("default status code should be %d", http.StatusOK)
+	}
+
+	err = assertion.Assert()
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestHTTPAssert_RequestCalledMoreThanOnce(t *testing.T) {
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
@@ -89,8 +130,8 @@ func TestHTTPAssert_RequestCalledMoreThanOnce(t *testing.T) {
 	}
 
 	err = assertion.Assert()
-	if err != nil {
-		t.Fatal(err)
+	if err == nil {
+		t.Fatal("should have failed because the request was called more than once")
 	}
 }
 

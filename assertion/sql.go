@@ -29,13 +29,13 @@ func (a *SQL) Setup() error {
 func (a *SQL) Assert() error {
 	err := a.validate()
 	if err != nil {
-		return errors.Wrap(err, "failed to validate assertion")
+		return fmt.Errorf("failed to validate assertion: %w", err)
 	}
 
 	result := []map[string]interface{}{}
 	rows, err := a.DB.Query(a.Query.Statement, a.Query.Params...)
 	if err != nil {
-		return errors.Wrap(err, "failed to execute SQL query")
+		return fmt.Errorf("failed to execute SQL query: %w", err)
 	}
 	cols, _ := rows.Columns()
 

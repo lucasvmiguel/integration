@@ -2,6 +2,7 @@ package integration
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"net/url"
 	"time"
@@ -86,7 +87,7 @@ func (t *WebsocketTestCase) Connection() *websocket.Conn {
 func (t *WebsocketTestCase) assert(message []byte) error {
 	content, err := io.ReadAll(bytes.NewBuffer(message))
 	if err != nil {
-		return errors.Wrap(err, "failed to read message content")
+		return fmt.Errorf("failed to read message content: %w", err)
 	}
 
 	contentString := string(content)

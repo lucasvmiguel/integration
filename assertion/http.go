@@ -30,7 +30,7 @@ func (a *HTTP) Setup() error {
 				defer req.Body.Close()
 				reqBody, err := io.ReadAll(req.Body)
 				if err != nil {
-					return nil, errors.Wrap(err, fmt.Sprintf("%s: failed to read request body", a.Request.URL))
+					return nil, fmt.Errorf("%s: failed to read request body: %w", a.Request.URL, err)
 				}
 
 				reqBodyString := string(reqBody)
@@ -74,18 +74,31 @@ func (a *HTTP) Setup() error {
 func (a *HTTP) Assert() error {
 	err := a.validate()
 	if err != nil {
-		return errors.Wrap(err, "failed to validate assertion")
+		return fmt.Errorf("failed to validate assertion: %w", err)
 	}
 
 	reqInfo := fmt.Sprintf("%s %s", a.method(), a.Request.URL)
 	callCountInfo := httpmock.GetCallCountInfo()
 
-	times, ok := callCountInfo[reqInfo]
-	if ok && times > 0 {
-		return nil
+	expectedTimes := a.Request.Times
+	if expectedTimes == 0 {
+		expectedTimes = 1
 	}
 
-	return fmt.Errorf("HTTP request '%s' has never been called", reqInfo)
+	times, ok := callCountInfo[reqInfo]
+	if !ok && times == expectedTimes {
+		return fmt.Errorf("HTTP request '%s' has never been called", reqInfo)
+	}
+
+	if expectedTimes > times {
+		return fmt.Errorf("HTTP request '%s' has been called %d times, expected %d", reqInfo, times, expectedTimes)
+	}
+
+	if expectedTimes < times {
+		return fmt.Errorf("HTTP request '%s' has been called %d times, expected %d", reqInfo, times, expectedTimes)
+	}
+
+	return nil
 }
 
 func (a *HTTP) method() string {

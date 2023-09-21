@@ -15,6 +15,9 @@ type Request struct {
 	// A multiline string is valid.
 	// eg: { "foo": "bar" }
 	Body string
+	// How many times the request is expected to be called
+	// default: 1
+	Times int
 }
 
 // Response is used to validate if a HTTP response was returned with the correct parameters

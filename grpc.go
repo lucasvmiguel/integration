@@ -74,12 +74,12 @@ func (t *GRPCTestCase) assert(resp []reflect.Value) error {
 
 	respValueJSON, err := json.Marshal(resp[0].Interface())
 	if err != nil {
-		return errors.Wrap(err, "failed to marshal grpc response to json")
+		return fmt.Errorf("failed to marshal grpc response to json: %w", err)
 	}
 
 	expectedValueJSON, err := json.Marshal(t.Output.Message)
 	if err != nil {
-		return errors.Wrap(err, "failed to marshal grpc expected response to json")
+		return fmt.Errorf("failed to marshal grpc expected response to json: %w", err)
 	}
 
 	je := utils.JsonError{}
