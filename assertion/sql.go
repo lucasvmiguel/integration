@@ -2,11 +2,11 @@ package assertion
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/lucasvmiguel/integration/call"
 	"github.com/lucasvmiguel/integration/expect"
-	"github.com/pkg/errors"
 )
 
 // SQL asserts a SQL query

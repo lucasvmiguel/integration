@@ -34,7 +34,7 @@ func (s *Server) SayHello(ctx context.Context, in *chat.Message) (*chat.Message,
 
 	_, err := http.Get("https://jsonplaceholder.typicode.com/posts/1")
 	if err != nil {
-		return nil, fmt.Errorf("failed to call endpoint: %w")
+		return nil, fmt.Errorf("failed to call endpoint: %w", err)
 	}
 
 	return &chat.Message{

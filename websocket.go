@@ -2,6 +2,7 @@ package integration
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"net/url"
@@ -14,7 +15,6 @@ import (
 	"github.com/lucasvmiguel/integration/call"
 	"github.com/lucasvmiguel/integration/expect"
 	"github.com/lucasvmiguel/integration/internal/utils"
-	"github.com/pkg/errors"
 )
 
 // WebsocketTestCase describes a Websocket test case that will run

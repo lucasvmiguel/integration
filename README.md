@@ -426,7 +426,6 @@ You can see this project's license [here](LICENSE).
 It's important to mention that this project contains the following libs:
 
 - github.com/jarcoal/httpmock
-- github.com/pkg/errors
 - github.com/kinbiko/jsonassert
 - google.golang.org/grpc
 - github.com/gorilla/websocket
