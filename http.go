@@ -2,6 +2,8 @@ package integration
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -11,7 +13,6 @@ import (
 	"github.com/lucasvmiguel/integration/call"
 	"github.com/lucasvmiguel/integration/expect"
 	"github.com/lucasvmiguel/integration/internal/utils"
-	"github.com/pkg/errors"
 )
 
 // HTTPTestCase describes a HTTP test case that will run
@@ -73,31 +74,31 @@ func (t *HTTPTestCase) assert(resp *http.Response) error {
 	defer resp.Body.Close()
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return errors.Wrap(err, "failed to read response body")
+		return fmt.Errorf("failed to read response body: %w", err)
 	}
 
 	respBodyString := string(respBody)
 
 	if resp.StatusCode != t.Response.StatusCode {
-		return errors.Errorf("response status code should be %d it got %d", t.Response.StatusCode, resp.StatusCode)
+		return fmt.Errorf("response status code should be %d it got %d", t.Response.StatusCode, resp.StatusCode)
 	}
 
 	if utils.IsJSON(t.Response.Body) {
 		je := utils.JsonError{}
 		jsonassert.New(&je).Assertf(respBodyString, t.Response.Body)
 		if je.Err != nil {
-			return errors.Errorf("response body is a JSON. response body does not match: %v", je.Err.Error())
+			return fmt.Errorf("response body is a JSON. response body does not match: %v", je.Err.Error())
 		}
 	} else {
 		if respBodyString != t.Response.Body {
-			return errors.Errorf("response body is a regular string. response body should be '%s' it got '%s'", t.Response.Body, respBodyString)
+			return fmt.Errorf("response body is a regular string. response body should be '%s' it got '%s'", t.Response.Body, respBodyString)
 		}
 	}
 
 	for key, values := range t.Response.Header {
 		respHeader := resp.Header.Get(key)
 		if respHeader != values[0] {
-			return errors.Errorf("response header should be '%s' it got '%s'", values[0], respHeader)
+			return fmt.Errorf("response header should be '%s' it got '%s'", values[0], respHeader)
 		}
 	}
 
@@ -107,13 +108,13 @@ func (t *HTTPTestCase) assert(resp *http.Response) error {
 func (t *HTTPTestCase) call() (*http.Response, error) {
 	req, err := t.createHTTPRequest()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create http request")
+		return nil, fmt.Errorf("failed to create http request: %w", err)
 	}
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to call endpoint")
+		return nil, fmt.Errorf("failed to call endpoint: %w", err)
 	}
 	return resp, nil
 }
@@ -130,7 +131,7 @@ func (t *HTTPTestCase) createHTTPRequest() (*http.Request, error) {
 
 	req, err := http.NewRequest(t.method(), t.Request.URL, reqBody)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create a new http request")
+		return nil, fmt.Errorf("failed to create a new http request: %w", err)
 	}
 	req.Header = t.Request.Header
 

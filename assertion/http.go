@@ -1,6 +1,7 @@
 package assertion
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -11,7 +12,6 @@ import (
 	"github.com/lucasvmiguel/integration/mock"
 
 	"github.com/jarcoal/httpmock"
-	"github.com/pkg/errors"
 )
 
 // HTTP asserts a http request
@@ -30,7 +30,7 @@ func (a *HTTP) Setup() error {
 				defer req.Body.Close()
 				reqBody, err := io.ReadAll(req.Body)
 				if err != nil {
-					return nil, errors.Wrap(err, fmt.Sprintf("%s: failed to read request body", a.Request.URL))
+					return nil, fmt.Errorf("%s: failed to read request body: %w", a.Request.URL, err)
 				}
 
 				reqBodyString := string(reqBody)
@@ -39,11 +39,11 @@ func (a *HTTP) Setup() error {
 					je := utils.JsonError{}
 					jsonassert.New(&je).Assertf(reqBodyString, a.Request.Body)
 					if je.Err != nil {
-						return nil, errors.Errorf("response body is a JSON. response body does not match: %v", je.Err.Error())
+						return nil, fmt.Errorf("response body is a JSON. response body does not match: %v", je.Err.Error())
 					}
 				} else {
 					if reqBodyString != a.Request.Body {
-						return nil, errors.Errorf("response body is a regular string. response body should be '%s' it got '%s'", a.Request.Body, reqBodyString)
+						return nil, fmt.Errorf("response body is a regular string. response body should be '%s' it got '%s'", a.Request.Body, reqBodyString)
 					}
 				}
 			}
@@ -51,7 +51,7 @@ func (a *HTTP) Setup() error {
 			for key, values := range a.Request.Header {
 				reqHeader := req.Header.Get(key)
 				if reqHeader != values[0] {
-					return nil, errors.Errorf("%s: request header should be %s it got %s", a.Request.URL, values[0], reqHeader)
+					return nil, fmt.Errorf("%s: request header should be %s it got %s", a.Request.URL, values[0], reqHeader)
 				}
 			}
 
@@ -74,18 +74,27 @@ func (a *HTTP) Setup() error {
 func (a *HTTP) Assert() error {
 	err := a.validate()
 	if err != nil {
-		return errors.Wrap(err, "failed to validate assertion")
+		return fmt.Errorf("failed to validate assertion: %w", err)
 	}
 
 	reqInfo := fmt.Sprintf("%s %s", a.method(), a.Request.URL)
 	callCountInfo := httpmock.GetCallCountInfo()
 
-	times, ok := callCountInfo[reqInfo]
-	if ok && times > 0 {
-		return nil
+	expectedTimes := a.Request.Times
+	if expectedTimes == 0 {
+		expectedTimes = 1
 	}
 
-	return fmt.Errorf("HTTP request '%s' has never been called", reqInfo)
+	times, ok := callCountInfo[reqInfo]
+	if !ok {
+		return fmt.Errorf("HTTP request '%s' has never been called", reqInfo)
+	}
+
+	if expectedTimes > times || expectedTimes < times {
+		return fmt.Errorf("HTTP request '%s' has been called %d times, expected %d", reqInfo, times, expectedTimes)
+	}
+
+	return nil
 }
 
 func (a *HTTP) method() string {

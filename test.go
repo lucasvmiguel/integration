@@ -2,8 +2,6 @@ package integration
 
 import (
 	"fmt"
-
-	"github.com/pkg/errors"
 )
 
 // Tester allows to test a case
@@ -17,5 +15,5 @@ func Test(tester Tester) error {
 }
 
 func errString(err error, description string, message string) string {
-	return errors.Wrap(err, fmt.Sprintf("%s: %s", description, message)).Error()
+	return fmt.Errorf("%s: %s : %w", description, message, err).Error()
 }

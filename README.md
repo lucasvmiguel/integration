@@ -404,6 +404,7 @@ integration.HTTPTestCase{
 | Method | Method expected in the HTTP request                                                                     | POST                                       | false     | GET     |
 | Body   | Body expected in the HTTP request. Multiline string is valid                                            | { "foo": "bar" }                           | false     | -       |
 | Header | Header expected in the HTTP request. Every header set in here will be asserted, others will be ignored. | content-type=application/json              | false     | -       |
+| Times  | How many times the request is expected to be called                                                     | 3                                          | false     | 1       |
 
 You can also ignore a JSON response body field assertion adding the annotation `<<PRESENSE>>`. More info [here](https://github.com/kinbiko/jsonassert)
 
@@ -425,7 +426,6 @@ You can see this project's license [here](LICENSE).
 It's important to mention that this project contains the following libs:
 
 - github.com/jarcoal/httpmock
-- github.com/pkg/errors
 - github.com/kinbiko/jsonassert
 - google.golang.org/grpc
 - github.com/gorilla/websocket
