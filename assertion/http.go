@@ -90,11 +90,7 @@ func (a *HTTP) Assert() error {
 		return fmt.Errorf("HTTP request '%s' has never been called", reqInfo)
 	}
 
-	if expectedTimes > times {
-		return fmt.Errorf("HTTP request '%s' has been called %d times, expected %d", reqInfo, times, expectedTimes)
-	}
-
-	if expectedTimes < times {
+	if expectedTimes > times || expectedTimes < times {
 		return fmt.Errorf("HTTP request '%s' has been called %d times, expected %d", reqInfo, times, expectedTimes)
 	}
 

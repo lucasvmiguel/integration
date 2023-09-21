@@ -85,7 +85,7 @@ func (t *GRPCTestCase) assert(resp []reflect.Value) error {
 	je := utils.JsonError{}
 	jsonassert.New(&je).Assertf(string(respValueJSON), string(expectedValueJSON))
 	if je.Err != nil {
-		return errors.Errorf("body does not match: %v", je.Err.Error())
+		return fmt.Errorf("body does not match: %v", je.Err.Error())
 	}
 
 	if respErr == nil && t.Output.Err == nil {
@@ -93,21 +93,21 @@ func (t *GRPCTestCase) assert(resp []reflect.Value) error {
 	}
 
 	if (respErr != nil && t.Output.Err == nil) || (respErr == nil && t.Output.Err != nil) {
-		return errors.Errorf("error response should be %v it got %v", t.Output.Err, respErr)
+		return fmt.Errorf("error response should be %v it got %v", t.Output.Err, respErr)
 	}
 
 	if respErr != nil && t.Output.Err != nil {
 		status, ok := status.FromError(respErr)
 		if !ok {
-			return errors.Errorf("failed to get error status %v", respErr)
+			return fmt.Errorf("failed to get error status %v", respErr)
 		}
 
 		if t.Output.Err.Code() != status.Code() {
-			return errors.Errorf("error response status should be %v it got %v", t.Output.Err.Code(), status.Code())
+			return fmt.Errorf("error response status should be %v it got %v", t.Output.Err.Code(), status.Code())
 		}
 
 		if t.Output.Err.Message() != status.Message() {
-			return errors.Errorf("error response message should be %v it got %v", t.Output.Err.Message(), status.Message())
+			return fmt.Errorf("error response message should be %v it got %v", t.Output.Err.Message(), status.Message())
 		}
 	}
 

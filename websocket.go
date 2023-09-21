@@ -96,11 +96,11 @@ func (t *WebsocketTestCase) assert(message []byte) error {
 		je := utils.JsonError{}
 		jsonassert.New(&je).Assertf(contentString, t.Receive.Content)
 		if je.Err != nil {
-			return errors.Errorf("content is a JSON. content does not match: %v", je.Err.Error())
+			return fmt.Errorf("content is a JSON. content does not match: %v", je.Err.Error())
 		}
 	} else {
 		if contentString != t.Receive.Content {
-			return errors.Errorf("content is a regular string. content should be '%s' it got '%s'", t.Receive.Content, contentString)
+			return fmt.Errorf("content is a regular string. content should be '%s' it got '%s'", t.Receive.Content, contentString)
 		}
 	}
 
@@ -116,7 +116,7 @@ func (t *WebsocketTestCase) connect() (*websocket.Conn, error) {
 
 	conn, _, err := websocket.DefaultDialer.Dial(u.String(), t.Call.Header)
 	if err != nil {
-		return nil, errors.Errorf("error to connect to the Websocket server (%s): %s", u.String(), err.Error())
+		return nil, fmt.Errorf("error to connect to the Websocket server (%s): %s", u.String(), err.Error())
 	}
 
 	return conn, nil
@@ -125,7 +125,7 @@ func (t *WebsocketTestCase) connect() (*websocket.Conn, error) {
 func (t *WebsocketTestCase) call(conn *websocket.Conn) error {
 	err := conn.WriteMessage(websocket.TextMessage, []byte(t.Call.Message))
 	if err != nil {
-		return errors.Errorf("error to send message to the Websocket server: %s", err.Error())
+		return fmt.Errorf("error to send message to the Websocket server: %s", err.Error())
 	}
 
 	return nil
@@ -154,14 +154,14 @@ func (t *WebsocketTestCase) listenAndCall(conn *websocket.Conn) ([]byte, error) 
 
 	err := t.call(conn)
 	if err != nil {
-		return nil, errors.Errorf("error to send message to the Websocket server: %s", err.Error())
+		return nil, fmt.Errorf("error to send message to the Websocket server: %s", err.Error())
 	}
 
 	select {
 	case message := <-messageChan:
 		return message, nil
 	case <-time.After(timeout):
-		return nil, errors.Errorf("timeout to read message from the Websocket server")
+		return nil, fmt.Errorf("timeout to read message from the Websocket server")
 	}
 }
 
