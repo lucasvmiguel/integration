@@ -116,7 +116,7 @@ func (t *GRPCTestCase) assert(resp []reflect.Value) error {
 
 func (t *GRPCTestCase) call() ([]reflect.Value, error) {
 	if t.Call.ServiceClient == nil {
-		return nil, errors.New(fmt.Sprintf("%s: failed because GRPC client is nil", t.Description))
+		return nil, fmt.Errorf("%s: failed because GRPC client is nil", t.Description)
 	}
 
 	args := []reflect.Value{reflect.ValueOf(context.Background()), reflect.ValueOf(t.Call.Message)}
