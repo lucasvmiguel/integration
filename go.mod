@@ -3,6 +3,7 @@ module github.com/lucasvmiguel/integration
 go 1.19
 
 require (
+	github.com/davecgh/go-spew v1.1.1
 	github.com/gorilla/websocket v1.5.0
 	github.com/jarcoal/httpmock v1.2.0
 	github.com/kinbiko/jsonassert v1.1.1

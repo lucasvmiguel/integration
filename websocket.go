@@ -122,8 +122,8 @@ func (t *WebsocketTestCase) connect() (*websocket.Conn, error) {
 	return conn, nil
 }
 
-func (t *WebsocketTestCase) call(conn *websocket.Conn) error {
-	err := conn.WriteMessage(websocket.TextMessage, []byte(t.Call.Message))
+func (t *WebsocketTestCase) call(conn *websocket.Conn, messageType int) error {
+	err := conn.WriteMessage(messageType, []byte(t.Call.Message))
 	if err != nil {
 		return fmt.Errorf("error to send message to the Websocket server: %s", err.Error())
 	}
@@ -138,7 +138,21 @@ func (t *WebsocketTestCase) listenAndCall(conn *websocket.Conn) ([]byte, error) 
 		timeout = 5 * time.Second
 	}
 
+	messageType := t.Call.MessageType
+	if messageType == 0 {
+		messageType = websocket.TextMessage
+	}
+
 	go func() {
+		handler := func(data string) error {
+			m := []byte(data)
+			messageChan <- m
+			return conn.WriteMessage(websocket.PingMessage, m)
+		}
+
+		conn.SetPingHandler(handler)
+		conn.SetPongHandler(handler)
+
 		for {
 			_, m, err := conn.ReadMessage()
 			if err != nil {
@@ -152,7 +166,7 @@ func (t *WebsocketTestCase) listenAndCall(conn *websocket.Conn) ([]byte, error) 
 		}
 	}()
 
-	err := t.call(conn)
+	err := t.call(conn, messageType)
 	if err != nil {
 		return nil, fmt.Errorf("error to send message to the Websocket server: %s", err.Error())
 	}
