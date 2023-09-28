@@ -457,6 +457,7 @@ func TestWebsocket_InvalidPath(t *testing.T) {
 		t.Fatal("it should return an error due to an invalid method")
 	}
 }
+
 func TestWebsocket_Ping(t *testing.T) {
 	err := Test(&WebsocketTestCase{
 		Description: "TestWebsocket_Ping",
@@ -493,7 +494,7 @@ func TestWebsocket_Ping(t *testing.T) {
 
 func TestWebsocket_Pong(t *testing.T) {
 	err := Test(&WebsocketTestCase{
-		Description: "TestWebsocket_Ping",
+		Description: "TestWebsocket_Pong",
 		Call: call.Websocket{
 			Scheme:      call.WebsocketSchemeWS,
 			URL:         fmt.Sprintf("localhost:%d", 8090),
