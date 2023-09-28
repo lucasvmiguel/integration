@@ -41,4 +41,9 @@ type Websocket struct {
 	// a multiline string is valid.
 	// eg: { "foo": "bar" }
 	Message string
+
+	// Message type used to send the call. It's based on Gorilla's message types
+	// https://pkg.go.dev/github.com/gorilla/websocket#pkg-constants
+	// eg: websocket.TextMessage
+	MessageType int
 }
