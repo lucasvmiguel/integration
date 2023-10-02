@@ -215,16 +215,9 @@ func stringHandlerWithoutReply(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	for {
-		_, messageReceived, err := c.ReadMessage()
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			break
-		}
-
-		if messageReceived != nil {
-			break
-		}
+	_, _, err = c.ReadMessage()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
