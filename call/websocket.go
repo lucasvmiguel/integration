@@ -46,4 +46,7 @@ type Websocket struct {
 	// https://pkg.go.dev/github.com/gorilla/websocket#pkg-constants
 	// eg: websocket.TextMessage
 	MessageType int
+
+	// CloseConnectionAfterCall will close the connection after the call is made.
+	CloseConnectionAfterCall bool
 }
