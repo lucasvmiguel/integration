@@ -199,12 +199,35 @@ func pongHandler(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+func stringHandlerWithoutReply(w http.ResponseWriter, req *http.Request) {
+	var upgrader = websocket.Upgrader{}
+
+	c, err := upgrader.Upgrade(w, req, nil)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer c.Close()
+
+	_, err = http.Get("https://jsonplaceholder.typicode.com/posts/1")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	_, _, err = c.ReadMessage()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
 func init() {
 	http.HandleFunc("/handler-json", jsonHandler)
 	http.HandleFunc("/handler-string", stringHandler)
 	http.HandleFunc("/infinite-handler", infiniteHandler)
 	http.HandleFunc("/ping-handler", pingHandler)
 	http.HandleFunc("/pong-handler", pongHandler)
+	http.HandleFunc("/handler-string-without-reply", stringHandlerWithoutReply)
 
 	go http.ListenAndServe(":8090", nil)
 }
@@ -515,5 +538,64 @@ func TestWebsocket_Pong(t *testing.T) {
 
 	if err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestWebsocket_SuccessButWithoutReply(t *testing.T) {
+	err := Test(&WebsocketTestCase{
+		Description: "TestWebsocket_SuccessButWithoutReply",
+		Call: call.Websocket{
+			Scheme:  call.WebsocketSchemeWS,
+			URL:     fmt.Sprintf("localhost:%d", 8090),
+			Path:    "/handler-string-without-reply",
+			Message: `foo`,
+		},
+		Assertions: []assertion.Assertion{
+			&assertion.HTTP{
+				Request: expect.Request{
+					URL:    "https://jsonplaceholder.typicode.com/posts/1",
+					Method: http.MethodGet,
+				},
+			},
+		},
+	})
+
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestWebsocket_SuccessCloseConnection(t *testing.T) {
+	testCase := &WebsocketTestCase{
+		Description: "TestWebsocket_SuccessCloseConnection",
+		Call: call.Websocket{
+			Scheme: call.WebsocketSchemeWS,
+			URL:    fmt.Sprintf("localhost:%d", 8090),
+			Path:   "/handler-string",
+			Header: http.Header{
+				"foo": []string{"bar"},
+			},
+			Message: `{
+				"title": "some title",
+				"userId": 1
+			}`,
+			CloseConnectionAfterCall: true,
+		},
+		Receive: expect.Message{
+			Content: `
+			foo
+			 bar`,
+		},
+	}
+	err := Test(testCase)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	conn := testCase.Connection()
+
+	err = conn.WriteMessage(websocket.TextMessage, []byte("foo"))
+	if err == nil {
+		t.Fatal("it should return an error due to a closed connection")
 	}
 }

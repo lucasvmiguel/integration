@@ -64,9 +64,11 @@ func (t *WebsocketTestCase) Test() error {
 		return errors.New(errString(err, t.Description, "failed to call and/or listen the Websocket server"))
 	}
 
-	err = t.assert(resp)
-	if err != nil {
-		return errors.New(errString(err, t.Description, "failed to assert Websocket response"))
+	if !t.isEmptyReceive() {
+		err = t.assert(resp)
+		if err != nil {
+			return errors.New(errString(err, t.Description, "failed to assert Websocket response"))
+		}
 	}
 
 	for _, assertion := range t.Assertions {
@@ -74,6 +76,10 @@ func (t *WebsocketTestCase) Test() error {
 		if err != nil {
 			return errors.New(errString(err, t.Description, "failed to assert"))
 		}
+	}
+
+	if t.Call.CloseConnectionAfterCall {
+		t.Call.Connection.Close()
 	}
 
 	return nil
@@ -132,6 +138,10 @@ func (t *WebsocketTestCase) call(conn *websocket.Conn, messageType int) error {
 }
 
 func (t *WebsocketTestCase) listenAndCall(conn *websocket.Conn) ([]byte, error) {
+	if t.isEmptyReceive() {
+		return nil, nil
+	}
+
 	messageChan := make(chan []byte)
 	timeout := t.Receive.Timeout
 	if timeout == 0 {
@@ -179,9 +189,13 @@ func (t *WebsocketTestCase) listenAndCall(conn *websocket.Conn) ([]byte, error) 
 	}
 }
 
+func (t *WebsocketTestCase) isEmptyReceive() bool {
+	return t.Receive.Content == "" && t.Receive.Timeout == 0
+}
+
 func (t *WebsocketTestCase) validate() error {
-	if t.Call.URL == "" {
-		return errors.New("URL is required")
+	if t.Call.Connection == nil && t.Call.URL == "" {
+		return errors.New("URL is required when Connection is nil")
 	}
 
 	return nil
