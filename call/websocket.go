@@ -3,7 +3,7 @@ package call
 import (
 	"net/http"
 
-	"github.com/gorilla/websocket"
+	"github.com/lucasvmiguel/integration/ws"
 )
 
 type WebsocketScheme string
@@ -35,7 +35,7 @@ type Websocket struct {
 	// Connection is the Websocket connection that will be used to make the calls (this field is optional).
 	// If you want to reuse a connection, you can set it here.
 	// If you set a connection, the `URL`, `Path`, `Header` and `Scheme` will be ignored.
-	Connection *websocket.Conn
+	Connection *ws.WebsocketConnection
 
 	// Message that will be sent with the request.
 	// a multiline string is valid.

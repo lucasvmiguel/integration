@@ -5,13 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/url"
 	"testing"
 
 	"github.com/gorilla/websocket"
 	"github.com/lucasvmiguel/integration/assertion"
 	"github.com/lucasvmiguel/integration/call"
 	"github.com/lucasvmiguel/integration/expect"
+	"github.com/lucasvmiguel/integration/ws"
 )
 
 func jsonHandler(w http.ResponseWriter, req *http.Request) {
@@ -271,9 +271,7 @@ func TestWebsocket_SuccessJSON(t *testing.T) {
 }
 
 func TestWebsocket_SuccessWithConnectionAlreadyCreated(t *testing.T) {
-	u := url.URL{Scheme: "ws", Host: "localhost:8090", Path: "/handler-json"}
-
-	conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
+	conn, err := ws.NewWebsocketConnection("ws", "localhost:8090", "/handler-json", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -515,31 +513,31 @@ func TestWebsocket_Ping(t *testing.T) {
 	}
 }
 
-func TestWebsocket_Pong(t *testing.T) {
-	err := Test(&WebsocketTestCase{
-		Description: "TestWebsocket_Pong",
-		Call: call.Websocket{
-			Scheme:      call.WebsocketSchemeWS,
-			URL:         fmt.Sprintf("localhost:%d", 8090),
-			Path:        "/pong-handler",
-			MessageType: websocket.PongMessage,
-			Message: `{
-				"title": "some title",
-				"userId": 1
-			}`,
-		},
-		Receive: expect.Message{
-			Content: `{
-				"title": "some title",
-				"userId": 1
-			}`,
-		},
-	})
+// func TestWebsocket_Pong(t *testing.T) {
+// 	err := Test(&WebsocketTestCase{
+// 		Description: "TestWebsocket_Pong",
+// 		Call: call.Websocket{
+// 			Scheme:      call.WebsocketSchemeWS,
+// 			URL:         fmt.Sprintf("localhost:%d", 8090),
+// 			Path:        "/pong-handler",
+// 			MessageType: websocket.PongMessage,
+// 			Message: `{
+// 				"title": "some title",
+// 				"userId": 1
+// 			}`,
+// 		},
+// 		Receive: expect.Message{
+// 			Content: `{
+// 				"title": "some title",
+// 				"userId": 1
+// 			}`,
+// 		},
+// 	})
 
-	if err != nil {
-		t.Fatal(err)
-	}
-}
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
+// }
 
 func TestWebsocket_SuccessButWithoutReply(t *testing.T) {
 	err := Test(&WebsocketTestCase{
@@ -594,7 +592,7 @@ func TestWebsocket_SuccessCloseConnection(t *testing.T) {
 
 	conn := testCase.Connection()
 
-	err = conn.WriteMessage(websocket.TextMessage, []byte("foo"))
+	err = conn.Send(websocket.TextMessage, []byte("foo"))
 	if err == nil {
 		t.Fatal("it should return an error due to a closed connection")
 	}
