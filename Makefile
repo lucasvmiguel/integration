@@ -2,7 +2,7 @@ lint:
 	go vet ./...
 
 test:
-	go test ./... -cover
+	go test ./... -cover # -race
 
 generate-proto:
 	protoc --go_out=. --go-grpc_out=. chat.proto

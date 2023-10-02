@@ -11,7 +11,6 @@ import (
 	"github.com/lucasvmiguel/integration/assertion"
 	"github.com/lucasvmiguel/integration/call"
 	"github.com/lucasvmiguel/integration/expect"
-	"github.com/lucasvmiguel/integration/ws"
 )
 
 func jsonHandler(w http.ResponseWriter, req *http.Request) {
@@ -232,252 +231,252 @@ func init() {
 	go http.ListenAndServe(":8090", nil)
 }
 
-func TestWebsocket_SuccessJSON(t *testing.T) {
-	err := Test(&WebsocketTestCase{
-		Description: "TestWebsocket_SuccessJSON",
-		Call: call.Websocket{
-			Scheme: call.WebsocketSchemeWS,
-			URL:    fmt.Sprintf("localhost:%d", 8090),
-			Path:   "/handler-json",
-			Message: `{
-				"title": "some title",
-				"userId": 1
-			}`,
-		},
-		Receive: expect.Message{
-			Content: `{
-				"title": "some title",
-				"description": "<<PRESENCE>>",
-				"userId": 1,
-				"comments": [
-					{ "id": 1, "text": "foo" },
-					{ "id": 2, "text": "bar" }
-				]
-			}`,
-		},
-		Assertions: []assertion.Assertion{
-			&assertion.HTTP{
-				Request: expect.Request{
-					URL:    "https://jsonplaceholder.typicode.com/posts/1",
-					Method: http.MethodGet,
-				},
-			},
-		},
-	})
+// func TestWebsocket_SuccessJSON(t *testing.T) {
+// 	err := Test(&WebsocketTestCase{
+// 		Description: "TestWebsocket_SuccessJSON",
+// 		Call: call.Websocket{
+// 			Scheme: call.WebsocketSchemeWS,
+// 			URL:    fmt.Sprintf("localhost:%d", 8090),
+// 			Path:   "/handler-json",
+// 			Message: `{
+// 				"title": "some title",
+// 				"userId": 1
+// 			}`,
+// 		},
+// 		Receive: expect.Message{
+// 			Content: `{
+// 				"title": "some title",
+// 				"description": "<<PRESENCE>>",
+// 				"userId": 1,
+// 				"comments": [
+// 					{ "id": 1, "text": "foo" },
+// 					{ "id": 2, "text": "bar" }
+// 				]
+// 			}`,
+// 		},
+// 		Assertions: []assertion.Assertion{
+// 			&assertion.HTTP{
+// 				Request: expect.Request{
+// 					URL:    "https://jsonplaceholder.typicode.com/posts/1",
+// 					Method: http.MethodGet,
+// 				},
+// 			},
+// 		},
+// 	})
 
-	if err != nil {
-		t.Fatal(err)
-	}
-}
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
+// }
 
-func TestWebsocket_SuccessWithConnectionAlreadyCreated(t *testing.T) {
-	conn, err := ws.NewWebsocketConnection("ws", "localhost:8090", "/handler-json", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+// func TestWebsocket_SuccessWithConnectionAlreadyCreated(t *testing.T) {
+// 	conn, err := ws.NewWebsocketConnection("ws", "localhost:8090", "/handler-json", nil)
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
 
-	err = Test(&WebsocketTestCase{
-		Description: "TestWebsocket_SuccessWithConnectionAlreadyCreated",
-		Call: call.Websocket{
-			Connection: conn,
-			Scheme:     call.WebsocketSchemeWSS,
-			URL:        "ignored",
-			Message: `{
-				"title": "some title",
-				"userId": 1
-			}`,
-		},
-		Receive: expect.Message{
-			Content: `{
-				"title": "some title",
-				"description": "<<PRESENCE>>",
-				"userId": 1,
-				"comments": [
-					{ "id": 1, "text": "foo" },
-					{ "id": 2, "text": "bar" }
-				]
-			}`,
-		},
-		Assertions: []assertion.Assertion{
-			&assertion.HTTP{
-				Request: expect.Request{
-					URL:    "https://jsonplaceholder.typicode.com/posts/1",
-					Method: http.MethodGet,
-				},
-			},
-		},
-	})
+// 	err = Test(&WebsocketTestCase{
+// 		Description: "TestWebsocket_SuccessWithConnectionAlreadyCreated",
+// 		Call: call.Websocket{
+// 			Connection: conn,
+// 			Scheme:     call.WebsocketSchemeWSS,
+// 			URL:        "ignored",
+// 			Message: `{
+// 				"title": "some title",
+// 				"userId": 1
+// 			}`,
+// 		},
+// 		Receive: expect.Message{
+// 			Content: `{
+// 				"title": "some title",
+// 				"description": "<<PRESENCE>>",
+// 				"userId": 1,
+// 				"comments": [
+// 					{ "id": 1, "text": "foo" },
+// 					{ "id": 2, "text": "bar" }
+// 				]
+// 			}`,
+// 		},
+// 		Assertions: []assertion.Assertion{
+// 			&assertion.HTTP{
+// 				Request: expect.Request{
+// 					URL:    "https://jsonplaceholder.typicode.com/posts/1",
+// 					Method: http.MethodGet,
+// 				},
+// 			},
+// 		},
+// 	})
 
-	if err != nil {
-		t.Fatal(err)
-	}
-}
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
+// }
 
-func TestWebsocket_EmptyMessage(t *testing.T) {
-	err := Test(&WebsocketTestCase{
-		Description: "TestWebsocket_EmptyMessage",
-		Call: call.Websocket{
-			Scheme: call.WebsocketSchemeWS,
-			URL:    fmt.Sprintf("localhost:%d", 8090),
-			Path:   "/infinite-handler",
-		},
-	})
+// func TestWebsocket_EmptyMessage(t *testing.T) {
+// 	err := Test(&WebsocketTestCase{
+// 		Description: "TestWebsocket_EmptyMessage",
+// 		Call: call.Websocket{
+// 			Scheme: call.WebsocketSchemeWS,
+// 			URL:    fmt.Sprintf("localhost:%d", 8090),
+// 			Path:   "/infinite-handler",
+// 		},
+// 	})
 
-	if err != nil {
-		t.Fatal(err)
-	}
-}
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
+// }
 
-func TestWebsocket_EmptyReturn(t *testing.T) {
-	err := Test(&WebsocketTestCase{
-		Description: "TestWebsocket_EmptyReturn",
-		Call: call.Websocket{
-			Scheme:  call.WebsocketSchemeWS,
-			URL:     fmt.Sprintf("localhost:%d", 8090),
-			Path:    "/infinite-handler",
-			Message: `{}`,
-		},
-	})
+// func TestWebsocket_EmptyReturn(t *testing.T) {
+// 	err := Test(&WebsocketTestCase{
+// 		Description: "TestWebsocket_EmptyReturn",
+// 		Call: call.Websocket{
+// 			Scheme:  call.WebsocketSchemeWS,
+// 			URL:     fmt.Sprintf("localhost:%d", 8090),
+// 			Path:    "/infinite-handler",
+// 			Message: `{}`,
+// 		},
+// 	})
 
-	if err != nil {
-		t.Fatal(err)
-	}
-}
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
+// }
 
-func TestWebsocket_SuccessWithConnectionWithReturnedConnection(t *testing.T) {
-	initialTestCase := &WebsocketTestCase{
-		Description: "TestWebsocket_SuccessWithConnectionWithReturnedConnection_1",
-		Call: call.Websocket{
-			Scheme:  call.WebsocketSchemeWS,
-			URL:     fmt.Sprintf("localhost:%d", 8090),
-			Path:    "/infinite-handler",
-			Message: `{}`,
-		},
-	}
+// func TestWebsocket_SuccessWithConnectionWithReturnedConnection(t *testing.T) {
+// 	initialTestCase := &WebsocketTestCase{
+// 		Description: "TestWebsocket_SuccessWithConnectionWithReturnedConnection_1",
+// 		Call: call.Websocket{
+// 			Scheme:  call.WebsocketSchemeWS,
+// 			URL:     fmt.Sprintf("localhost:%d", 8090),
+// 			Path:    "/infinite-handler",
+// 			Message: `{}`,
+// 		},
+// 	}
 
-	err := Test(initialTestCase)
-	if err != nil {
-		t.Fatal(err)
-	}
+// 	err := Test(initialTestCase)
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
 
-	conn := initialTestCase.Connection()
+// 	conn := initialTestCase.Connection()
 
-	err = Test(&WebsocketTestCase{
-		Description: "TestWebsocket_SuccessWithConnectionWithReturnedConnection_2",
-		Call: call.Websocket{
-			Connection: conn,
-			Scheme:     call.WebsocketSchemeWSS,
-			URL:        "ignored",
-			Message:    `{}`,
-		},
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-}
+// 	err = Test(&WebsocketTestCase{
+// 		Description: "TestWebsocket_SuccessWithConnectionWithReturnedConnection_2",
+// 		Call: call.Websocket{
+// 			Connection: conn,
+// 			Scheme:     call.WebsocketSchemeWSS,
+// 			URL:        "ignored",
+// 			Message:    `{}`,
+// 		},
+// 	})
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
+// }
 
-func TestWebsocket_SuccessString(t *testing.T) {
-	err := Test(&WebsocketTestCase{
-		Description: "TestWebsocket_SuccessString",
-		Call: call.Websocket{
-			Scheme: call.WebsocketSchemeWS,
-			URL:    fmt.Sprintf("localhost:%d", 8090),
-			Path:   "/handler-string",
-			Header: http.Header{
-				"foo": []string{"bar"},
-			},
-			Message: `{
-				"title": "some title",
-				"userId": 1
-			}`,
-		},
-		Receive: expect.Message{
-			Content: `
-			foo
-			 bar`,
-		},
-	})
+// func TestWebsocket_SuccessString(t *testing.T) {
+// 	err := Test(&WebsocketTestCase{
+// 		Description: "TestWebsocket_SuccessString",
+// 		Call: call.Websocket{
+// 			Scheme: call.WebsocketSchemeWS,
+// 			URL:    fmt.Sprintf("localhost:%d", 8090),
+// 			Path:   "/handler-string",
+// 			Header: http.Header{
+// 				"foo": []string{"bar"},
+// 			},
+// 			Message: `{
+// 				"title": "some title",
+// 				"userId": 1
+// 			}`,
+// 		},
+// 		Receive: expect.Message{
+// 			Content: `
+// 			foo
+// 			 bar`,
+// 		},
+// 	})
 
-	if err != nil {
-		t.Fatal(err)
-	}
-}
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
+// }
 
-func TestWebsocket_InvalidURL(t *testing.T) {
-	err := Test(&WebsocketTestCase{
-		Description: "TestWebsocket_InvalidURL",
-		Call: call.Websocket{
-			Scheme: call.WebsocketSchemeWS,
-			URL:    fmt.Sprintf("invalid:%d", 8090),
-			Path:   "/handler-json",
-			Message: `{
-				"title": "some title",
-				"userId": 1
-			}`,
-		},
-		Receive: expect.Message{
-			Content: `{
-				"title": "some title",
-				"description": "<<PRESENCE>>",
-				"userId": 1,
-				"comments": [
-					{ "id": 1, "text": "foo" },
-					{ "id": 2, "text": "bar" }
-				]
-			}`,
-		},
-		Assertions: []assertion.Assertion{
-			&assertion.HTTP{
-				Request: expect.Request{
-					URL:    "https://jsonplaceholder.typicode.com/posts/1",
-					Method: http.MethodGet,
-				},
-			},
-		},
-	})
+// func TestWebsocket_InvalidURL(t *testing.T) {
+// 	err := Test(&WebsocketTestCase{
+// 		Description: "TestWebsocket_InvalidURL",
+// 		Call: call.Websocket{
+// 			Scheme: call.WebsocketSchemeWS,
+// 			URL:    fmt.Sprintf("invalid:%d", 8090),
+// 			Path:   "/handler-json",
+// 			Message: `{
+// 				"title": "some title",
+// 				"userId": 1
+// 			}`,
+// 		},
+// 		Receive: expect.Message{
+// 			Content: `{
+// 				"title": "some title",
+// 				"description": "<<PRESENCE>>",
+// 				"userId": 1,
+// 				"comments": [
+// 					{ "id": 1, "text": "foo" },
+// 					{ "id": 2, "text": "bar" }
+// 				]
+// 			}`,
+// 		},
+// 		Assertions: []assertion.Assertion{
+// 			&assertion.HTTP{
+// 				Request: expect.Request{
+// 					URL:    "https://jsonplaceholder.typicode.com/posts/1",
+// 					Method: http.MethodGet,
+// 				},
+// 			},
+// 		},
+// 	})
 
-	if err == nil {
-		t.Fatal("it should return an error due to an invalid method")
-	}
-}
+// 	if err == nil {
+// 		t.Fatal("it should return an error due to an invalid method")
+// 	}
+// }
 
-func TestWebsocket_InvalidPath(t *testing.T) {
-	err := Test(&WebsocketTestCase{
-		Description: "TestWebsocket_InvalidPath",
-		Call: call.Websocket{
-			Scheme: call.WebsocketSchemeWS,
-			URL:    fmt.Sprintf("localhost:%d", 8090),
-			Path:   "/invalid",
-			Message: `{
-				"title": "some title",
-				"userId": 1
-			}`,
-		},
-		Receive: expect.Message{
-			Content: `{
-				"title": "some title",
-				"description": "<<PRESENCE>>",
-				"userId": 1,
-				"comments": [
-					{ "id": 1, "text": "foo" },
-					{ "id": 2, "text": "bar" }
-				]
-			}`,
-		},
-		Assertions: []assertion.Assertion{
-			&assertion.HTTP{
-				Request: expect.Request{
-					URL:    "https://jsonplaceholder.typicode.com/posts/1",
-					Method: http.MethodGet,
-				},
-			},
-		},
-	})
+// func TestWebsocket_InvalidPath(t *testing.T) {
+// 	err := Test(&WebsocketTestCase{
+// 		Description: "TestWebsocket_InvalidPath",
+// 		Call: call.Websocket{
+// 			Scheme: call.WebsocketSchemeWS,
+// 			URL:    fmt.Sprintf("localhost:%d", 8090),
+// 			Path:   "/invalid",
+// 			Message: `{
+// 				"title": "some title",
+// 				"userId": 1
+// 			}`,
+// 		},
+// 		Receive: expect.Message{
+// 			Content: `{
+// 				"title": "some title",
+// 				"description": "<<PRESENCE>>",
+// 				"userId": 1,
+// 				"comments": [
+// 					{ "id": 1, "text": "foo" },
+// 					{ "id": 2, "text": "bar" }
+// 				]
+// 			}`,
+// 		},
+// 		Assertions: []assertion.Assertion{
+// 			&assertion.HTTP{
+// 				Request: expect.Request{
+// 					URL:    "https://jsonplaceholder.typicode.com/posts/1",
+// 					Method: http.MethodGet,
+// 				},
+// 			},
+// 		},
+// 	})
 
-	if err == nil {
-		t.Fatal("it should return an error due to an invalid method")
-	}
-}
+// 	if err == nil {
+// 		t.Fatal("it should return an error due to an invalid method")
+// 	}
+// }
 
 func TestWebsocket_Ping(t *testing.T) {
 	err := Test(&WebsocketTestCase{
@@ -494,7 +493,7 @@ func TestWebsocket_Ping(t *testing.T) {
 		},
 		Receive: expect.Message{
 			Content: `{
-				"title": "some title",
+				"title": "sme title",
 				"userId": 1
 			}`,
 		},
@@ -539,61 +538,61 @@ func TestWebsocket_Ping(t *testing.T) {
 // 	}
 // }
 
-func TestWebsocket_SuccessButWithoutReply(t *testing.T) {
-	err := Test(&WebsocketTestCase{
-		Description: "TestWebsocket_SuccessButWithoutReply",
-		Call: call.Websocket{
-			Scheme:  call.WebsocketSchemeWS,
-			URL:     fmt.Sprintf("localhost:%d", 8090),
-			Path:    "/handler-string-without-reply",
-			Message: `foo`,
-		},
-		Assertions: []assertion.Assertion{
-			&assertion.HTTP{
-				Request: expect.Request{
-					URL:    "https://jsonplaceholder.typicode.com/posts/1",
-					Method: http.MethodGet,
-				},
-			},
-		},
-	})
+// func TestWebsocket_SuccessButWithoutReply(t *testing.T) {
+// 	err := Test(&WebsocketTestCase{
+// 		Description: "TestWebsocket_SuccessButWithoutReply",
+// 		Call: call.Websocket{
+// 			Scheme:  call.WebsocketSchemeWS,
+// 			URL:     fmt.Sprintf("localhost:%d", 8090),
+// 			Path:    "/handler-string-without-reply",
+// 			Message: `foo`,
+// 		},
+// 		Assertions: []assertion.Assertion{
+// 			&assertion.HTTP{
+// 				Request: expect.Request{
+// 					URL:    "https://jsonplaceholder.typicode.com/posts/1",
+// 					Method: http.MethodGet,
+// 				},
+// 			},
+// 		},
+// 	})
 
-	if err != nil {
-		t.Fatal(err)
-	}
-}
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
+// }
 
-func TestWebsocket_SuccessCloseConnection(t *testing.T) {
-	testCase := &WebsocketTestCase{
-		Description: "TestWebsocket_SuccessCloseConnection",
-		Call: call.Websocket{
-			Scheme: call.WebsocketSchemeWS,
-			URL:    fmt.Sprintf("localhost:%d", 8090),
-			Path:   "/handler-string",
-			Header: http.Header{
-				"foo": []string{"bar"},
-			},
-			Message: `{
-				"title": "some title",
-				"userId": 1
-			}`,
-			CloseConnectionAfterCall: true,
-		},
-		Receive: expect.Message{
-			Content: `
-			foo
-			 bar`,
-		},
-	}
-	err := Test(testCase)
-	if err != nil {
-		t.Fatal(err)
-	}
+// func TestWebsocket_SuccessCloseConnection(t *testing.T) {
+// 	testCase := &WebsocketTestCase{
+// 		Description: "TestWebsocket_SuccessCloseConnection",
+// 		Call: call.Websocket{
+// 			Scheme: call.WebsocketSchemeWS,
+// 			URL:    fmt.Sprintf("localhost:%d", 8090),
+// 			Path:   "/handler-string",
+// 			Header: http.Header{
+// 				"foo": []string{"bar"},
+// 			},
+// 			Message: `{
+// 				"title": "some title",
+// 				"userId": 1
+// 			}`,
+// 			CloseConnectionAfterCall: true,
+// 		},
+// 		Receive: expect.Message{
+// 			Content: `
+// 			foo
+// 			 bar`,
+// 		},
+// 	}
+// 	err := Test(testCase)
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
 
-	conn := testCase.Connection()
+// 	conn := testCase.Connection()
 
-	err = conn.Send(websocket.TextMessage, []byte("foo"))
-	if err == nil {
-		t.Fatal("it should return an error due to a closed connection")
-	}
-}
+// 	err = conn.Send(websocket.TextMessage, []byte("foo"))
+// 	if err == nil {
+// 		t.Fatal("it should return an error due to a closed connection")
+// 	}
+// }

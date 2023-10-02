@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"sync"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/gorilla/websocket"
 )
 
@@ -28,21 +29,9 @@ func NewWebsocketConnection(scheme, host, path string, headers http.Header) (*We
 		return nil, fmt.Errorf("error to connect to the Websocket server (%s): %s", u.String(), err.Error())
 	}
 
-	wc := &WebsocketConnection{
+	return &WebsocketConnection{
 		conn: conn,
-	}
-
-	wc.conn.SetPingHandler(func(data string) error {
-		m := []byte(data)
-		return wc.Send(websocket.PongMessage, m)
-	})
-
-	wc.conn.SetPongHandler(func(data string) error {
-		m := []byte(data)
-		return wc.Send(websocket.PingMessage, m)
-	})
-
-	return wc, nil
+	}, nil
 }
 
 // ReadMessage reads a message from the Websocket server
@@ -53,13 +42,21 @@ func (wc *WebsocketConnection) Read() (int, []byte, error) {
 	return wc.conn.ReadMessage()
 }
 
+// SetPingHandler sets a handler for ping messages
+func (wc *WebsocketConnection) SetPingHandler(handler func(data string) error) {
+	wc.conn.SetPingHandler(handler)
+}
+
+// SetPongHandler sets a handler for pong messages
+func (wc *WebsocketConnection) SetPongHandler(handler func(data string) error) {
+	wc.conn.SetPongHandler(handler)
+}
+
 // Send sends a message to the Websocket server
 // messageType is based on Gorilla's message types
 // https://pkg.go.dev/github.com/gorilla/websocket#pkg-constants
 func (wc *WebsocketConnection) Send(messageType int, data []byte) error {
-	// wc.mux.Lock()
-	// defer wc.mux.Unlock()
-
+	spew.Dump("SEND", messageType, string(data))
 	return wc.conn.WriteMessage(messageType, []byte(data))
 }
 
