@@ -138,10 +138,6 @@ func (t *WebsocketTestCase) call(conn *websocket.Conn, messageType int) error {
 }
 
 func (t *WebsocketTestCase) listenAndCall(conn *websocket.Conn) ([]byte, error) {
-	if t.isEmptyReceive() {
-		return nil, nil
-	}
-
 	messageChan := make(chan []byte)
 	timeout := t.Receive.Timeout
 	if timeout == 0 {
@@ -151,6 +147,14 @@ func (t *WebsocketTestCase) listenAndCall(conn *websocket.Conn) ([]byte, error) 
 	messageType := t.Call.MessageType
 	if messageType == 0 {
 		messageType = websocket.TextMessage
+	}
+
+	if t.isEmptyReceive() {
+		err := t.call(conn, messageType)
+		if err != nil {
+			return nil, fmt.Errorf("error to send message to the Websocket server: %s", err.Error())
+		}
+		return nil, nil
 	}
 
 	go func() {
