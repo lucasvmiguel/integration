@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net/url"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -15,6 +14,7 @@ import (
 	"github.com/lucasvmiguel/integration/call"
 	"github.com/lucasvmiguel/integration/expect"
 	"github.com/lucasvmiguel/integration/internal/utils"
+	"github.com/lucasvmiguel/integration/ws"
 )
 
 // WebsocketTestCase describes a Websocket test case that will run
@@ -28,10 +28,12 @@ type WebsocketTestCase struct {
 
 	// Receive is going to be used to assert if the Websocket server message returned what was expected.
 	// This field is optional as a Websocket server can never send a message to the client.
-	Receive expect.Message
+	Receive *expect.Message
 
 	// Assertions that will run in test case
 	Assertions []assertion.Assertion
+
+	connection *ws.WebsocketConnection
 }
 
 // Test runs an Websocket test case
@@ -41,14 +43,14 @@ func (t *WebsocketTestCase) Test() error {
 		return errors.New(errString(err, t.Description, "failed to validate test case"))
 	}
 
-	httpmock.Activate()
-	defer httpmock.DeactivateAndReset()
+	if assertion.AnyHTTP(t.Assertions) {
+		httpmock.Activate()
+		defer httpmock.DeactivateAndReset()
+	}
 
-	for _, assertion := range t.Assertions {
-		err := assertion.Setup()
-		if err != nil {
-			return errors.New(errString(err, t.Description, "failed to setup assertion"))
-		}
+	err = t.setupAssertions()
+	if err != nil {
+		return errors.New(errString(err, t.Description, "failed to setup assertions"))
 	}
 
 	if t.Call.Connection == nil {
@@ -56,38 +58,144 @@ func (t *WebsocketTestCase) Test() error {
 		if err != nil {
 			return errors.New(errString(err, t.Description, "failed to connect Websocket endpoint"))
 		}
-		t.Call.Connection = conn
+		t.connection = conn
+	} else {
+		t.connection = t.Call.Connection
 	}
 
-	resp, err := t.listenAndCall(t.Call.Connection)
-	if err != nil {
-		return errors.New(errString(err, t.Description, "failed to call and/or listen the Websocket server"))
+	var resp []byte
+
+	if t.Call.MessageType == websocket.PingMessage {
+		resp, err = t.readAndSendPing()
+		if err != nil {
+			return errors.New(errString(err, t.Description, "failed to read and send ping message"))
+		}
+	} else {
+		resp, err = t.readAndSendMessage()
+		if err != nil {
+			return errors.New(errString(err, t.Description, "failed to read and send message"))
+		}
 	}
 
-	if !t.isEmptyReceive() {
+	if t.Receive != nil {
 		err = t.assert(resp)
 		if err != nil {
 			return errors.New(errString(err, t.Description, "failed to assert Websocket response"))
 		}
 	}
 
-	for _, assertion := range t.Assertions {
-		err := assertion.Assert()
-		if err != nil {
-			return errors.New(errString(err, t.Description, "failed to assert"))
+	if t.Assertions != nil {
+		for _, assertion := range t.Assertions {
+			err := assertion.Assert()
+			if err != nil {
+				return errors.New(errString(err, t.Description, "failed to assert"))
+			}
 		}
 	}
 
 	if t.Call.CloseConnectionAfterCall {
-		t.Call.Connection.Close()
+		err = t.connection.Close()
+		if err != nil {
+			return errors.New(errString(err, t.Description, "failed to close Websocket connection"))
+		}
 	}
 
 	return nil
 }
 
 // Connection returns the Websocket connection
-func (t *WebsocketTestCase) Connection() *websocket.Conn {
-	return t.Call.Connection
+func (t *WebsocketTestCase) Connection() *ws.WebsocketConnection {
+	return t.connection
+}
+
+func (t *WebsocketTestCase) setupAssertions() error {
+
+	if t.Assertions != nil {
+		for _, assertion := range t.Assertions {
+			err := assertion.Setup()
+			if err != nil {
+				return fmt.Errorf("failed to setup assertion: %w", err)
+			}
+		}
+	}
+
+	return nil
+}
+
+func (t *WebsocketTestCase) readAndSendMessage() ([]byte, error) {
+	messageType := t.Call.MessageType
+	if messageType == 0 {
+		messageType = websocket.TextMessage
+	}
+
+	if t.Receive == nil {
+		err := t.connection.Send(messageType, []byte(t.Call.Message))
+		if err != nil {
+			return nil, fmt.Errorf("failed to send message: %w", err)
+		}
+		return nil, nil
+	}
+
+	var resp []byte
+	msg := make(chan []byte)
+	errChan := make(chan error)
+
+	go func() {
+		_, m, err := t.connection.Read()
+		if err != nil {
+			errChan <- err
+			return
+		}
+
+		msg <- m
+	}()
+
+	err := t.connection.Send(messageType, []byte(t.Call.Message))
+	if err != nil {
+		return nil, fmt.Errorf("failed to send message: %w", err)
+	}
+
+	select {
+	case resp = <-msg:
+		return resp, nil
+	case err := <-errChan:
+		return nil, fmt.Errorf("failed to send read message, channel error: %w", err)
+	case <-time.After(t.timeout()):
+		return nil, errors.New("timeout to reading message from the Websocket server")
+	}
+}
+
+func (t *WebsocketTestCase) readAndSendPing() ([]byte, error) {
+	if t.Receive == nil {
+		err := t.connection.Send(t.Call.MessageType, []byte(t.Call.Message))
+		if err != nil {
+			return nil, fmt.Errorf("failed to ping message: %w", err)
+		}
+		return nil, nil
+	}
+
+	msg := make(chan []byte)
+
+	t.connection.SetPongHandler(func(data string) error {
+		m := []byte(data)
+		msg <- m
+		return t.connection.Send(websocket.PingMessage, m)
+	})
+
+	err := t.connection.Send(t.Call.MessageType, []byte(t.Call.Message))
+	if err != nil {
+		return nil, fmt.Errorf("failed to ping message: %w", err)
+	}
+
+	// for some reason, this is required to read the pong message
+	go func() { t.connection.Read() }()
+
+	select {
+	case resp := <-msg:
+		return resp, nil
+	case <-time.After(t.timeout()):
+		return nil, errors.New("timeout to reading pong from the Websocket server")
+	}
 }
 
 func (t *WebsocketTestCase) assert(message []byte) error {
@@ -113,88 +221,26 @@ func (t *WebsocketTestCase) assert(message []byte) error {
 	return nil
 }
 
-func (t *WebsocketTestCase) connect() (*websocket.Conn, error) {
-	if t.Call.Scheme == "" {
-		t.Call.Scheme = call.WebsocketSchemeWS
-	}
-
-	u := url.URL{Scheme: string(t.Call.Scheme), Host: t.Call.URL, Path: t.Call.Path}
-
-	conn, _, err := websocket.DefaultDialer.Dial(u.String(), t.Call.Header)
+func (t *WebsocketTestCase) connect() (*ws.WebsocketConnection, error) {
+	conn, err := ws.NewWebsocketConnection(string(t.Call.Scheme), t.Call.URL, t.Call.Path, t.Call.Header)
 	if err != nil {
-		return nil, fmt.Errorf("error to connect to the Websocket server (%s): %s", u.String(), err.Error())
+		return nil, fmt.Errorf("error to connect to the Websocket server: %s", err.Error())
 	}
-
 	return conn, nil
 }
 
-func (t *WebsocketTestCase) call(conn *websocket.Conn, messageType int) error {
-	err := conn.WriteMessage(messageType, []byte(t.Call.Message))
-	if err != nil {
-		return fmt.Errorf("error to send message to the Websocket server: %s", err.Error())
+func (t *WebsocketTestCase) timeout() time.Duration {
+	defaultTimeout := 5 * time.Second
+
+	if t.Receive == nil {
+		return defaultTimeout
 	}
 
-	return nil
-}
-
-func (t *WebsocketTestCase) listenAndCall(conn *websocket.Conn) ([]byte, error) {
-	messageChan := make(chan []byte)
 	timeout := t.Receive.Timeout
 	if timeout == 0 {
-		timeout = 5 * time.Second
+		timeout = defaultTimeout
 	}
-
-	messageType := t.Call.MessageType
-	if messageType == 0 {
-		messageType = websocket.TextMessage
-	}
-
-	if t.isEmptyReceive() {
-		err := t.call(conn, messageType)
-		if err != nil {
-			return nil, fmt.Errorf("error to send message to the Websocket server: %s", err.Error())
-		}
-		return nil, nil
-	}
-
-	go func() {
-		handler := func(data string) error {
-			m := []byte(data)
-			messageChan <- m
-			return conn.WriteMessage(websocket.PingMessage, m)
-		}
-
-		conn.SetPingHandler(handler)
-		conn.SetPongHandler(handler)
-
-		for {
-			_, m, err := conn.ReadMessage()
-			if err != nil {
-				break
-			}
-
-			if m != nil {
-				messageChan <- m
-				break
-			}
-		}
-	}()
-
-	err := t.call(conn, messageType)
-	if err != nil {
-		return nil, fmt.Errorf("error to send message to the Websocket server: %s", err.Error())
-	}
-
-	select {
-	case message := <-messageChan:
-		return message, nil
-	case <-time.After(timeout):
-		return nil, fmt.Errorf("timeout to read message from the Websocket server")
-	}
-}
-
-func (t *WebsocketTestCase) isEmptyReceive() bool {
-	return t.Receive.Content == "" && t.Receive.Timeout == 0
+	return timeout
 }
 
 func (t *WebsocketTestCase) validate() error {

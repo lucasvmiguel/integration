@@ -39,14 +39,14 @@ func (t *GRPCTestCase) Test() error {
 		return errors.New(errString(err, t.Description, "failed to validate test case"))
 	}
 
-	httpmock.Activate()
-	defer httpmock.DeactivateAndReset()
+	if assertion.AnyHTTP(t.Assertions) {
+		httpmock.Activate()
+		defer httpmock.DeactivateAndReset()
+	}
 
-	for _, assertion := range t.Assertions {
-		err := assertion.Setup()
-		if err != nil {
-			return errors.New(errString(err, t.Description, "failed to setup assertion"))
-		}
+	err = t.setupAssertions()
+	if err != nil {
+		return errors.New(errString(err, t.Description, "failed to setup assertions"))
 	}
 
 	resp, err := t.call()
@@ -59,10 +59,25 @@ func (t *GRPCTestCase) Test() error {
 		return errors.New(errString(err, t.Description, "failed to assert GRPC response"))
 	}
 
-	for _, assertion := range t.Assertions {
-		err := assertion.Assert()
-		if err != nil {
-			return errors.New(errString(err, t.Description, "failed to assert"))
+	if t.Assertions != nil {
+		for _, assertion := range t.Assertions {
+			err := assertion.Assert()
+			if err != nil {
+				return errors.New(errString(err, t.Description, "failed to assert"))
+			}
+		}
+	}
+
+	return nil
+}
+
+func (t *GRPCTestCase) setupAssertions() error {
+	if t.Assertions != nil {
+		for _, assertion := range t.Assertions {
+			err := assertion.Setup()
+			if err != nil {
+				return fmt.Errorf("failed to setup assertion: %w", err)
+			}
 		}
 	}
 
