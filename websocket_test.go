@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/gorilla/websocket"
 	"github.com/lucasvmiguel/integration/assertion"
 	"github.com/lucasvmiguel/integration/call"
@@ -178,7 +177,34 @@ func pingHandler(w http.ResponseWriter, req *http.Request) {
 	})
 
 	// for some reason, required to read the ping message
-	go func() { spew.Dump(c.ReadMessage()) }()
+	go func() { c.ReadMessage() }()
+
+	var quit = make(chan struct{})
+	<-quit
+}
+
+func pingHandlerWithoutReply(w http.ResponseWriter, req *http.Request) {
+	var upgrader = websocket.Upgrader{}
+
+	c, err := upgrader.Upgrade(w, req, nil)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer c.Close()
+
+	_, err = http.Get("https://jsonplaceholder.typicode.com/posts/1")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	c.SetPingHandler(func(data string) error {
+		return nil
+	})
+
+	// for some reason, required to read the ping message
+	go func() { c.ReadMessage() }()
 
 	var quit = make(chan struct{})
 	<-quit
@@ -187,9 +213,10 @@ func pingHandler(w http.ResponseWriter, req *http.Request) {
 func init() {
 	http.HandleFunc("/handler-json", jsonHandler)
 	http.HandleFunc("/handler-string", stringHandler)
-	http.HandleFunc("/infinite-handler", infiniteHandler)
-	http.HandleFunc("/ping-handler", pingHandler)
 	http.HandleFunc("/handler-string-without-reply", stringHandlerWithoutReply)
+	http.HandleFunc("/handler-infinite", infiniteHandler)
+	http.HandleFunc("/handler-ping", pingHandler)
+	http.HandleFunc("/handler-ping-without-reply", pingHandlerWithoutReply)
 
 	go http.ListenAndServe(":8090", nil)
 }
@@ -281,7 +308,7 @@ func TestWebsocket_EmptyMessage(t *testing.T) {
 		Call: call.Websocket{
 			Scheme: call.WebsocketSchemeWS,
 			URL:    fmt.Sprintf("localhost:%d", 8090),
-			Path:   "/infinite-handler",
+			Path:   "/handler-infinite",
 		},
 	})
 
@@ -296,7 +323,7 @@ func TestWebsocket_EmptyReturn(t *testing.T) {
 		Call: call.Websocket{
 			Scheme:  call.WebsocketSchemeWS,
 			URL:     fmt.Sprintf("localhost:%d", 8090),
-			Path:    "/infinite-handler",
+			Path:    "/handler-infinite",
 			Message: `{}`,
 		},
 		Receive: &expect.Message{
@@ -315,7 +342,7 @@ func TestWebsocket_SuccessWithConnectionWithReturnedConnection(t *testing.T) {
 		Call: call.Websocket{
 			Scheme:  call.WebsocketSchemeWS,
 			URL:     fmt.Sprintf("localhost:%d", 8090),
-			Path:    "/infinite-handler",
+			Path:    "/handler-infinite",
 			Message: `{}`,
 		},
 		Receive: &expect.Message{
@@ -455,7 +482,7 @@ func TestWebsocket_Ping(t *testing.T) {
 		Call: call.Websocket{
 			Scheme:      call.WebsocketSchemeWS,
 			URL:         fmt.Sprintf("localhost:%d", 8090),
-			Path:        "/ping-handler",
+			Path:        "/handler-ping",
 			MessageType: websocket.PingMessage,
 			Message: `{
 				"title": "some title",
@@ -464,6 +491,34 @@ func TestWebsocket_Ping(t *testing.T) {
 		},
 		Receive: &expect.Message{
 			Content: `{
+				"title": "some title",
+				"userId": 1
+			}`,
+		},
+		Assertions: []assertion.Assertion{
+			&assertion.HTTP{
+				Request: expect.Request{
+					URL:    "https://jsonplaceholder.typicode.com/posts/1",
+					Method: http.MethodGet,
+				},
+			},
+		},
+	})
+
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestWebsocket_PingWithoutReply(t *testing.T) {
+	err := Test(&WebsocketTestCase{
+		Description: "TestWebsocket_PingWithoutReply",
+		Call: call.Websocket{
+			Scheme:      call.WebsocketSchemeWS,
+			URL:         fmt.Sprintf("localhost:%d", 8090),
+			Path:        "/handler-ping-without-reply",
+			MessageType: websocket.PingMessage,
+			Message: `{
 				"title": "some title",
 				"userId": 1
 			}`,
