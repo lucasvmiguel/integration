@@ -7,7 +7,6 @@ import (
 	"io"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/gorilla/websocket"
 	"github.com/jarcoal/httpmock"
 	"github.com/kinbiko/jsonassert"
@@ -29,7 +28,7 @@ type WebsocketTestCase struct {
 
 	// Receive is going to be used to assert if the Websocket server message returned what was expected.
 	// This field is optional as a Websocket server can never send a message to the client.
-	Receive expect.Message
+	Receive *expect.Message
 
 	// Assertions that will run in test case
 	Assertions []assertion.Assertion
@@ -44,13 +43,15 @@ func (t *WebsocketTestCase) Test() error {
 		return errors.New(errString(err, t.Description, "failed to validate test case"))
 	}
 
-	httpmock.Activate()
-	defer httpmock.DeactivateAndReset()
+	if t.Assertions != nil {
+		httpmock.Activate()
+		defer httpmock.DeactivateAndReset()
 
-	for _, assertion := range t.Assertions {
-		err := assertion.Setup()
-		if err != nil {
-			return errors.New(errString(err, t.Description, "failed to setup assertion"))
+		for _, assertion := range t.Assertions {
+			err := assertion.Setup()
+			if err != nil {
+				return errors.New(errString(err, t.Description, "failed to setup assertion"))
+			}
 		}
 	}
 
@@ -66,48 +67,39 @@ func (t *WebsocketTestCase) Test() error {
 
 	var resp []byte
 
-	if t.hasPrelisten() {
-		messageChan, errChan := t.prelisten()
-		err = t.send()
+	if t.Call.MessageType == websocket.PingMessage {
+		resp, err = t.readAndSendPing()
 		if err != nil {
-			return errors.New(errString(err, t.Description, "failed to call Websocket endpoint"))
-		}
-
-		select {
-		case resp = <-messageChan:
-		case <-time.After(t.timeout()):
-			return errors.New(errString(err, t.Description, "timeout to read message from the Websocket server 1"))
-		case err = <-errChan:
-			return errors.New(errString(err, t.Description, "failed to call Websocket endpoint"))
+			return errors.New(errString(err, t.Description, "failed to read and send ping message"))
 		}
 	} else {
-		err = t.send()
+		resp, err = t.readAndSendMessage()
 		if err != nil {
-			return errors.New(errString(err, t.Description, "failed to call Websocket endpoint"))
+			return errors.New(errString(err, t.Description, "failed to read and send message"))
 		}
 	}
 
-	if t.hasListen() {
-		resp, err = t.listen()
+	if t.Receive != nil {
+		err = t.assert(resp)
 		if err != nil {
-			return errors.New(errString(err, t.Description, "failed to listen Websocket endpoint"))
+			return errors.New(errString(err, t.Description, "failed to assert Websocket response"))
 		}
 	}
 
-	err = t.assert(resp)
-	if err != nil {
-		return errors.New(errString(err, t.Description, "failed to assert Websocket response"))
-	}
-
-	for _, assertion := range t.Assertions {
-		err := assertion.Assert()
-		if err != nil {
-			return errors.New(errString(err, t.Description, "failed to assert"))
+	if t.Assertions != nil {
+		for _, assertion := range t.Assertions {
+			err := assertion.Assert()
+			if err != nil {
+				return errors.New(errString(err, t.Description, "failed to assert"))
+			}
 		}
 	}
 
 	if t.Call.CloseConnectionAfterCall {
-		t.connection.Close()
+		err = t.connection.Close()
+		if err != nil {
+			return errors.New(errString(err, t.Description, "failed to close Websocket connection"))
+		}
 	}
 
 	return nil
@@ -116,6 +108,82 @@ func (t *WebsocketTestCase) Test() error {
 // Connection returns the Websocket connection
 func (t *WebsocketTestCase) Connection() *ws.WebsocketConnection {
 	return t.connection
+}
+
+func (t *WebsocketTestCase) readAndSendMessage() ([]byte, error) {
+	messageType := t.Call.MessageType
+	if messageType == 0 {
+		messageType = websocket.TextMessage
+	}
+
+	if t.Receive == nil {
+		err := t.connection.Send(messageType, []byte(t.Call.Message))
+		if err != nil {
+			return nil, fmt.Errorf("failed to send message: %w", err)
+		}
+		return nil, nil
+	}
+
+	var resp []byte
+	msg := make(chan []byte)
+	errChan := make(chan error)
+
+	go func() {
+		_, m, err := t.connection.Read()
+		if err != nil {
+			errChan <- err
+			return
+		}
+
+		msg <- m
+	}()
+
+	err := t.connection.Send(messageType, []byte(t.Call.Message))
+	if err != nil {
+		return nil, fmt.Errorf("failed to send message: %w", err)
+	}
+
+	select {
+	case resp = <-msg:
+		return resp, nil
+	case err := <-errChan:
+		return nil, fmt.Errorf("failed to send read message, channel error: %w", err)
+	case <-time.After(t.timeout()):
+		return nil, errors.New("timeout to reading message from the Websocket server")
+	}
+}
+
+func (t *WebsocketTestCase) readAndSendPing() ([]byte, error) {
+	if t.Receive == nil {
+		err := t.connection.Send(t.Call.MessageType, []byte(t.Call.Message))
+		if err != nil {
+			return nil, fmt.Errorf("failed to ping message: %w", err)
+		}
+		return nil, nil
+	}
+
+	msg := make(chan []byte)
+
+	t.connection.SetPongHandler(func(data string) error {
+		m := []byte(data)
+		msg <- m
+		return t.connection.Send(websocket.PingMessage, m)
+	})
+
+	err := t.connection.Send(t.Call.MessageType, []byte(t.Call.Message))
+	if err != nil {
+		return nil, fmt.Errorf("failed to ping message: %w", err)
+	}
+
+	// for some reason, this is required to read the pong message
+	go func() { t.connection.Read() }()
+
+	select {
+	case resp := <-msg:
+		return resp, nil
+	case <-time.After(t.timeout()):
+		return nil, errors.New("timeout to reading pong from the Websocket server")
+	}
 }
 
 func (t *WebsocketTestCase) assert(message []byte) error {
@@ -149,81 +217,16 @@ func (t *WebsocketTestCase) connect() (*ws.WebsocketConnection, error) {
 	return conn, nil
 }
 
-func (t *WebsocketTestCase) send() error {
-	messageType := t.Call.MessageType
-	if messageType == 0 {
-		messageType = websocket.TextMessage
-	}
-
-	err := t.connection.Send(messageType, []byte(t.Call.Message))
-	if err != nil {
-		return fmt.Errorf("error to send message to the Websocket server: %s", err.Error())
-	}
-	return nil
-}
-
-func (t *WebsocketTestCase) hasListen() bool {
-	return !t.isEmptyReceive() && !t.hasPrelisten()
-}
-
-func (t *WebsocketTestCase) listen() ([]byte, error) {
-	messageChan := make(chan []byte)
-	errChan := make(chan error)
-
-	go func() {
-		_, m, err := t.connection.Read()
-		if err != nil {
-			errChan <- err
-			return
-		}
-
-		messageChan <- m
-	}()
-
-	select {
-	case message := <-messageChan:
-		return message, nil
-	case err := <-errChan:
-		return nil, err
-	case <-time.After(t.timeout()):
-		return nil, fmt.Errorf("timeout to read message from the Websocket server 2")
-	}
-}
-
-func (t *WebsocketTestCase) hasPrelisten() bool {
-	return t.Call.MessageType == websocket.PingMessage || t.Call.MessageType == websocket.PongMessage
-}
-
-func (t *WebsocketTestCase) prelisten() (chan []byte, chan error) {
-	messageChan := make(chan []byte)
-	errChan := make(chan error)
-	spew.Dump("PRELISTEN", t.Call.MessageType)
-
-	t.connection.SetPingHandler(func(data string) error {
-		msg := []byte(data)
-		spew.Dump("PING", msg)
-		messageChan <- msg
-		return t.connection.Send(websocket.PongMessage, msg)
-	})
-
-	t.connection.SetPongHandler(func(data string) error {
-		msg := []byte(data)
-		spew.Dump("PONG", msg)
-		messageChan <- msg
-		return t.connection.Send(websocket.PingMessage, msg)
-	})
-
-	return messageChan, errChan
-}
-
-func (t *WebsocketTestCase) isEmptyReceive() bool {
-	return t.Receive.Content == "" && t.Receive.Timeout == 0
-}
-
 func (t *WebsocketTestCase) timeout() time.Duration {
+	defaultTimeout := 5 * time.Second
+
+	if t.Receive == nil {
+		return defaultTimeout
+	}
+
 	timeout := t.Receive.Timeout
 	if timeout == 0 {
-		timeout = 5 * time.Second
+		timeout = defaultTimeout
 	}
 	return timeout
 }

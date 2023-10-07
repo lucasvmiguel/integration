@@ -209,7 +209,7 @@ integration.WebsocketTestCase{
 			"userId": 1
 		}`,
 	},
-	Receive: expect.Message{
+	Receive: &expect.Message{
 		Content: `{
 			"title": "some title",
 			"description": "<<PRESENCE>>",
@@ -236,7 +236,7 @@ integration.WebsocketTestCase{
 | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- | --------- | ------- |
 | Description | Description describes a test case                                                                                                                                                      | My test                 | false     | -       |
 | Call        | Call is the Websocket server the test case will try to connect and send a message                                                                                                      | call.Websocket{}        | true      | -       |
-| Receive     | Receive is going to be used to assert if the Websocket server message returned what was expected. This field is optional as a Websocket server can never send a message to the client. | expect.Message{}        | false     | -       |
+| Receive     | Receive is going to be used to assert if the Websocket server message returned what was expected. This field is optional as a Websocket server can never send a message to the client. | &expect.Message{}       | false     | -       |
 | Assertions  | Assertions that will run in test case                                                                                                                                                  | []assertion.Assertion{} | false     | -       |
 
 #### Call

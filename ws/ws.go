@@ -6,7 +6,6 @@ import (
 	"net/url"
 	"sync"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/gorilla/websocket"
 )
 
@@ -44,11 +43,17 @@ func (wc *WebsocketConnection) Read() (int, []byte, error) {
 
 // SetPingHandler sets a handler for ping messages
 func (wc *WebsocketConnection) SetPingHandler(handler func(data string) error) {
+	wc.mux.Lock()
+	defer wc.mux.Unlock()
+
 	wc.conn.SetPingHandler(handler)
 }
 
 // SetPongHandler sets a handler for pong messages
 func (wc *WebsocketConnection) SetPongHandler(handler func(data string) error) {
+	wc.mux.Lock()
+	defer wc.mux.Unlock()
+
 	wc.conn.SetPongHandler(handler)
 }
 
@@ -56,7 +61,9 @@ func (wc *WebsocketConnection) SetPongHandler(handler func(data string) error) {
 // messageType is based on Gorilla's message types
 // https://pkg.go.dev/github.com/gorilla/websocket#pkg-constants
 func (wc *WebsocketConnection) Send(messageType int, data []byte) error {
-	spew.Dump("SEND", messageType, string(data))
+	wc.mux.Lock()
+	defer wc.mux.Unlock()
+
 	return wc.conn.WriteMessage(messageType, []byte(data))
 }
 
