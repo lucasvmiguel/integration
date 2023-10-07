@@ -39,18 +39,16 @@ func (t *HTTPTestCase) Test() error {
 		return errors.New(errString(err, t.Description, "failed to validate test case"))
 	}
 
-	if t.Assertions != nil {
+	if assertion.AnyHTTP(t.Assertions) {
 		httpmock.Activate()
 		defer httpmock.DeactivateAndReset()
 
 		httpmock.RegisterResponder(t.method(), t.Request.URL, httpmock.InitialTransport.RoundTrip)
+	}
 
-		for _, assertion := range t.Assertions {
-			err := assertion.Setup()
-			if err != nil {
-				return errors.New(errString(err, t.Description, "failed to setup assertion"))
-			}
-		}
+	err = t.setupAssertions()
+	if err != nil {
+		return errors.New(errString(err, t.Description, "failed to setup assertions"))
 	}
 
 	resp, err := t.call()
@@ -68,6 +66,19 @@ func (t *HTTPTestCase) Test() error {
 			err := assertion.Assert()
 			if err != nil {
 				return errors.New(errString(err, t.Description, "failed to assert"))
+			}
+		}
+	}
+
+	return nil
+}
+
+func (t *HTTPTestCase) setupAssertions() error {
+	if t.Assertions != nil {
+		for _, assertion := range t.Assertions {
+			err := assertion.Setup()
+			if err != nil {
+				return fmt.Errorf("failed to setup assertion: %w", err)
 			}
 		}
 	}
