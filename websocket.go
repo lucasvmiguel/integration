@@ -20,7 +20,7 @@ import (
 // WebsocketTestCase describes a Websocket test case that will run
 type WebsocketTestCase struct {
 	// Description describes a test case
-	// It can be really useful to understand which tests are breaking
+	// It can be really useful  to understand which tests are breaking
 	Description string
 
 	// Call is the Websocket server the test case will try to connect and send a message
